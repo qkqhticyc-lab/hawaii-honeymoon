@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { days, flights, places, stays, tasks, type Place } from '../src/data/trip.ts';
 import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, nightStay, readLocation } from '../src/lib.ts';
+import { mapLocations } from '../src/data/mapLocations.ts';
+import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
 
 test('15 consecutive date-only days and correct weekdays', () => {
   assert.equal(days.length, 15);
@@ -66,4 +68,24 @@ test('checklist corrupt storage recovery and safe partial migration', () => {
   assert.equal(loadChecklist('{"bookings":false,"esta":true,"molokini":"yes"}').bookings, false);
   assert.equal(loadChecklist('{"esta":true}').esta, true);
   assert.equal(loadChecklist('{"molokini":"yes"}').molokini, false);
+});
+
+test('map references have sources and never invent accommodation or meeting points', () => {
+  for (const location of Object.values(mapLocations)) {
+    assert.ok(Number.isFinite(location.lat) && Math.abs(location.lat) <= 90);
+    assert.ok(Number.isFinite(location.lng) && Math.abs(location.lng) <= 180);
+    assert.match(location.source, /^https:\/\//);
+    assert.ok(location.label.length > 0);
+  }
+  for (const id of ['kona', 'stars', 'photo', 'coffee', 'village', 'macadamia', 'lunch'] as const) assert.equal(mapLocations[id], undefined);
+  assert.ok(Math.abs(coordinate('icn')![1] - coordinate('hnl')![1]) < 90);
+});
+
+test('map route lines break at unknown stops and numbering is stable on return visits', () => {
+  const segments = mapSegments([{ mode: '차량', stops: ['grand', 'kona', 'haleakala', 'grand'] }]);
+  assert.deepEqual(segments.map(s => [s.from, s.to]), [['haleakala', 'grand']]);
+  const stops = mapStops([{ mode: '도보', stops: ['grand', 'wailea', 'grand'] }]);
+  assert.deepEqual(stops.map(s => [s.id, s.number]), [['grand', 1], ['wailea', 2]]);
+  const day18 = mapSegments(days.find(d => d.date === '2026-12-18')!.routes);
+  assert.deepEqual(day18.map(s => [s.from, s.to]), [['visitor', 'summit']]);
 });

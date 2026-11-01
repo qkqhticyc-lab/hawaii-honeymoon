@@ -42,10 +42,15 @@ npm run test:browser    # 실제 브라우저에서 모바일·PC 기능 검증
 | `stays` | 숙소 3곳과 체크인·체크아웃일 |
 | `flights` | 항공 5편, UTC 오프셋을 포함한 실제 시각과 IANA 시간대 |
 | `places` | 장소명과 Google Maps 검색어. 미확인 장소는 검색어 없이 메모만 기록 |
+| `mapLocations` (`src/data/mapLocations.ts`) | 출처를 확인한 지도 대표 좌표와 지점 설명. 미확인 숙소·집합지는 좌표 없음 |
 | `transport` | 렌터카·택시·투어 차량 |
 | `tasks` | 준비 항목·초기 완료 상태·관련 날짜와 장소 |
 
 UI는 `src/App.tsx`, 스타일은 `src/styles.css`, 날짜·시간대·지도·저장 처리는 `src/lib.ts`에 있습니다.
+
+날짜별 지도는 `src/DayMap.tsx`, 지도 스타일은 `src/map.css`, 목적지 번호와 연결 구간 처리는 `src/mapModel.ts`에 있습니다. Leaflet으로 확대·축소, 목적지 선택, 구간별 보기와 한국 구간 보기를 제공합니다. 선은 방문 순서를 잇는 직선이며 도로·비행 경로 계산이나 소요시간 추정이 아닙니다. 위치가 미확인인 중간 지점은 선을 끊고 임의 좌표를 사용하지 않습니다. 공원·해변·지역의 핀은 대표 위치이며, 실제 입구·주차·집합 장소와 다를 수 있습니다. 출처와 설명은 각 좌표 데이터에 기록합니다.
+
+거리 지도 배경은 [OpenStreetMap](https://www.openstreetmap.org/copyright) 타일을 브라우저에서 불러오며 API 키가 필요하지 않습니다. [타일 이용 정책](https://operations.osmfoundation.org/policies/tiles/)에 따라 출처 표시, 브라우저 캐시와 Referer를 유지하고 타일 일괄 다운로드나 오프라인 프리패치를 하지 않습니다. 위치 검색이나 경로 계산 API는 사용하지 않습니다. 배경을 끄거나 불러오지 못한 경우에도 저장된 목적지·동선과 [Natural Earth](https://www.naturalearthdata.com/) 1:10m 해안선(`src/data/hawaii-land.json`, public domain)이 남습니다. 해안선은 지형 개요용이며 도로 지도가 아닙니다. 한국 구간의 거리 지도 배경은 인터넷 연결이 필요합니다.
 
 - 상태는 `확정`, `계획`, `선택`, `확인 필요`만 사용합니다.
 - 날짜 전용 값은 `YYYY-MM-DD`이며 요일은 UTC를 명시해 계산합니다.

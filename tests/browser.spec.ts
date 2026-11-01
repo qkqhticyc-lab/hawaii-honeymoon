@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// Test map behavior against local geographic data, independent of a public tile server.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://tile.openstreetmap.org/**', route => route.abort());
+});
+
 test('all days and views render without horizontal overflow or JavaScript errors', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -102,4 +107,48 @@ test('skip link preserves selected day and all status labels meet 4.5:1 contrast
     return elements.map(el => { const style = getComputedStyle(el); const fg = luminance(style.color), bg = luminance(style.backgroundColor); return { label: el.textContent, ratio: (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05) }; });
   });
   for (const result of ratios) expect(result.ratio, result.label!).toBeGreaterThanOrEqual(4.5);
+});
+
+test('interactive daily map selects destinations, zooms and falls back without tiles', async ({ page }, testInfo) => {
+  await page.goto('./#view=daily&date=2026-12-14');
+  await expect(page.locator('.destination-marker')).toHaveCount(2);
+  await page.locator('.map-destinations button').filter({ hasText: '할레아칼라 정상 구역' }).click();
+  await expect(page.locator('.map-selection')).toContainText('할레아칼라 정상 구역 대표 위치');
+  await expect(page.locator('.destination-marker.is-selected')).toHaveAttribute('title', /할레아칼라/);
+  await page.getByRole('button', { name: '지도 확대', exact: true }).click();
+  await page.getByRole('button', { name: '지도 축소', exact: true }).click();
+  await page.getByRole('button', { name: '전체 목적지 맞추기' }).click();
+  const mapBox = (await page.locator('.day-map').boundingBox())!;
+  for (const marker of await page.locator('.destination-marker').all()) {
+    const markerBox = (await marker.boundingBox())!;
+    expect(markerBox.x).toBeGreaterThanOrEqual(mapBox.x);
+    expect(markerBox.x + markerBox.width).toBeLessThanOrEqual(mapBox.x + mapBox.width);
+  }
+  await expect(page.locator('.map-load-note')).toBeVisible();
+  await page.getByRole('button', { name: '거리 지도 켜짐' }).click();
+  await expect(page.locator('.day-map .leaflet-tile')).toHaveCount(0);
+  await expect(page.locator('.day-map .leaflet-landBase-pane path')).toHaveCount(1);
+  await expect(page.locator('.destination-marker')).toHaveCount(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('.day-map-panel').screenshot({ path: `test-results/${testInfo.project.name}-map.png` });
+});
+
+test('map changes routes and dates, and unknown lodging never gets a marker', async ({ page }) => {
+  await page.goto('./#view=daily&date=2026-12-17');
+  await page.locator('.map-filters button').filter({ hasText: '2. 비행기' }).click();
+  await expect(page.locator('.destination-marker')).toHaveCount(2);
+  await expect(page.locator('.map-destinations')).toContainText('OGG');
+  await expect(page.locator('.map-destinations')).not.toContainText('그랜드');
+  await page.getByRole('button', { name: /12. 18.*금요일/ }).click();
+  await expect(page.locator('.map-filters button').first()).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.destination-marker')).toHaveCount(2);
+  await expect(page.locator('.destination-marker[title*="코나 에어비앤비"]')).toHaveCount(0);
+  await page.locator('.map-destinations button').filter({ hasText: '코나 에어비앤비' }).click();
+  await expect(page.locator('.map-selection')).toContainText('정확한 숙소 위치 미확인');
+  await page.goto('./#view=daily&date=2026-12-12');
+  await expect(page.locator('.destination-marker[title*="ICN"]')).toHaveCount(0);
+  await page.getByRole('button', { name: '한국까지 보기' }).click();
+  await expect(page.locator('.destination-marker[title*="ICN"]')).toHaveCount(1);
+  await page.getByRole('button', { name: '하와이만 보기' }).click();
+  await expect(page.locator('.destination-marker[title*="ICN"]')).toHaveCount(0);
 });
