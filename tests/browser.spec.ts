@@ -50,6 +50,8 @@ test('checklist persists, filters work, and stored checks do not confirm itinera
   await expect(page.getByLabel('항공·숙소 예약', { exact: true })).toBeChecked();
   const checkbox = page.getByLabel('몰로키니 예약', { exact: true });
   await checkbox.check();
+  await page.getByRole('button', { name: '체크 내용 저장', exact: true }).click();
+  await expect(page.locator('.save-status')).toContainText('저장했어요');
   await page.reload();
   await expect(checkbox).toBeChecked();
   await page.getByRole('button', { name: /남은 준비/ }).click();
@@ -86,9 +88,41 @@ test('keyboard access, touch targets, map links and flight chronology', async ({
 test('storage failure does not break itinerary or preparation screen', async ({ page }) => {
   await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error('Storage unavailable'); }; });
   await page.goto('./#view=prepare&date=2026-12-12');
-  await expect(page.getByRole('alert')).toContainText('저장소');
   await page.getByLabel('몰로키니 예약', { exact: true }).check();
+  await page.getByRole('button', { name: '체크 내용 저장', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('저장하지 못했어요');
+  await expect(page.locator('.save-status')).toContainText('저장 전 변경 1개');
   await expect(page.getByLabel('몰로키니 예약', { exact: true })).toBeChecked();
+});
+
+test('checklist changes stay as drafts until save; cancellation and saved unchecking persist', async ({ page }) => {
+  await page.goto('./#view=prepare&date=2026-12-15');
+  const checkbox = page.getByLabel('몰로키니 예약', { exact: true });
+  const save = page.getByRole('button', { name: '체크 내용 저장', exact: true });
+  await expect(save).toBeDisabled();
+  await checkbox.check();
+  await expect(page.locator('.save-status')).toContainText('저장 전 변경 1개');
+  expect(await page.evaluate(() => localStorage.getItem('hawaii-honeymoon.checklist.v1'))).toBeNull();
+  await page.reload();
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  await page.locator('nav a').filter({ hasText: '날짜별 일정' }).click();
+  await expect(page.locator('.day-task-card')).toContainText('몰로키니 예약');
+  await page.locator('nav a').filter({ hasText: '준비할 일' }).click();
+  await expect(checkbox).toBeChecked();
+  await page.getByRole('button', { name: '변경 취소', exact: true }).click();
+  await expect(checkbox).not.toBeChecked();
+  await expect(save).toBeDisabled();
+  await checkbox.check();
+  await save.click();
+  await expect(save).toBeDisabled();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hawaii-honeymoon.checklist.v1')!).molokini)).toBe(true);
+  await page.reload();
+  await expect(checkbox).toBeChecked();
+  await checkbox.uncheck();
+  await save.click();
+  await page.reload();
+  await expect(checkbox).not.toBeChecked();
 });
 
 test('skip link preserves selected day and all status labels meet 4.5:1 contrast', async ({ page }) => {
