@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { days, flights, places, stays, tasks, type Place } from '../src/data/trip.ts';
-import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, nightStay, readLocation } from '../src/lib.ts';
+import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
 
@@ -43,9 +43,9 @@ test('planning remains planning; only known reservations are confirmed', () => {
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
-  assert.equal(tasks.filter(t => t.done).length, 4);
-  assert.equal(tasks.length, 23);
-  assert.equal(tasks.find(t => t.id === 'diamond')!.done, false);
+  assert.equal(tasks.filter(t => t.done).length, 6);
+  assert.equal(tasks.length, 24);
+  assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
 test('unknown locations cannot accidentally become navigation destinations', () => {
   assert.equal((places.kona as Place).query, undefined);
@@ -68,6 +68,50 @@ test('checklist corrupt storage recovery and safe partial migration', () => {
   assert.equal(loadChecklist('{"bookings":false,"esta":true,"molokini":"yes"}').bookings, false);
   assert.equal(loadChecklist('{"esta":true}').esta, true);
   assert.equal(loadChecklist('{"molokini":"yes"}').molokini, false);
+});
+
+test('confirmed resort activities lead each day once and reuse the resort location', () => {
+  for (const [date, title, time] of [
+    ['2026-12-13', '그랜드 와일레아 무료 스노클링 데모', '07:30~08:00 · 예약'],
+    ['2026-12-16', 'Beach Bliss Yoga', '07:00 · 예약'],
+    ['2026-12-17', 'Beginners Hula · 무료 입문 훌라', '07:00 · 선택한 시작 시각'],
+  ]) {
+    const day = days.find(d => d.date === date)!;
+    assert.equal(day.events.filter(e => e.title === title).length, 1);
+    assert.equal(day.events[0].title, title);
+    assert.equal(day.events[0].time, time);
+    assert.equal(day.events[0].status, '확정');
+    assert.equal(day.events[0].place, 'grand');
+    assert.match(day.events[0].notes.join(' '), /무료 · 성인 2명/);
+  }
+  const demo = days.find(d => d.date === '2026-12-13')!.events[0];
+  assert.ok(demo.notes.includes('07:15까지 Grand Wailea Scuba Pool 도착. 수영장 장비 사용 및 안전 연습.'));
+  assert.ok(!days.some(d => d.events.some(e => e.title === '호텔 무료 스노클링 입문 수업')));
+  const dec16 = days.find(d => d.date === '2026-12-16')!;
+  assert.ok(dec16.events.some(e => e.title === '문화 체험 · 스파 중 선택' && e.status === '선택'));
+  assert.equal(dec16.events.filter(e => /Yoga|요가/.test(e.title)).length, 1);
+  assert.ok(dec16.events[0].notes.includes('집합 장소와 종료 시각은 미확인.'));
+  const dec17 = days.find(d => d.date === '2026-12-17')!;
+  assert.ok(dec17.events[0].notes.includes('확인 메일에는 날짜·인원만 표시. 집합 장소와 종료 시각은 체크인 때 확인.'));
+  assert.equal(dec17.events[2].time, '11:30 · 예약');
+  assert.equal(dec17.events[3].flightId, 'WN2618');
+  assert.equal(flights.find(f => f.id === 'WN2618')!.departure, '2026-12-17T13:35:00-10:00');
+});
+
+test('updated preparation defaults preserve existing saved values and add the Kalai email separately', () => {
+  assert.equal(STORAGE_KEY, 'hawaii-honeymoon.checklist.v1');
+  assert.equal(new Set(tasks.map(t => t.id)).size, tasks.length);
+  const defaults = loadChecklist(null);
+  assert.equal(defaults.diamond, true);
+  assert.equal(defaults.email, true);
+  assert.equal(defaults['email-kalai'], false);
+  assert.equal(tasks.find(t => t.id === 'email')!.place, 'grand');
+  assert.equal(tasks.find(t => t.id === 'email-kalai')!.place, 'kalai');
+  const existing = loadChecklist('{"diamond":false,"email":false,"molokini":true}');
+  assert.equal(existing.diamond, false);
+  assert.equal(existing.email, false);
+  assert.equal(existing.molokini, true);
+  assert.equal(existing['email-kalai'], false);
 });
 
 test('map references have sources and never invent accommodation or meeting points', () => {

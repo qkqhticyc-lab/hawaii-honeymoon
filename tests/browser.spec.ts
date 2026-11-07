@@ -186,3 +186,58 @@ test('map changes routes and dates, and unknown lodging never gets a marker', as
   await page.getByRole('button', { name: '하와이만 보기' }).click();
   await expect(page.locator('.destination-marker[title*="ICN"]')).toHaveCount(0);
 });
+
+test('confirmed Grand Wailea activities appear once before breakfast and retain daily date links', async ({ page }) => {
+  for (const [date, title, time] of [
+    ['2026-12-13', '그랜드 와일레아 무료 스노클링 데모', '07:30~08:00'],
+    ['2026-12-16', 'Beach Bliss Yoga', '07:00'],
+    ['2026-12-17', 'Beginners Hula · 무료 입문 훌라', '07:00'],
+  ]) {
+    await page.goto(`./#view=daily&date=${date}`);
+    await expect(page.getByRole('heading', { name: title, exact: true })).toHaveCount(1);
+    const first = page.locator('.timeline > li').first();
+    await expect(first.getByRole('heading')).toHaveText(title);
+    await expect(first.locator('.event-time')).toContainText(time);
+    await expect(first.locator('.badge')).toHaveText('확정');
+    await first.locator('summary').click();
+    await expect(first.locator('details')).toContainText('무료 · 성인 2명');
+    if (date === '2026-12-13') await expect(first.locator('details')).toContainText('07:15까지 Grand Wailea Scuba Pool 도착');
+    if (date === '2026-12-16') {
+      await expect(page.getByRole('heading', { name: '문화 체험 · 스파 중 선택', exact: true })).toHaveCount(1);
+      await expect(first.locator('details')).toContainText('집합 장소와 종료 시각은 미확인');
+    }
+    if (date === '2026-12-17') {
+      await expect(first.locator('details')).toContainText('확인 메일에는 날짜·인원만 표시');
+      await expect(page.locator('.timeline > li').nth(2)).toContainText('11:30');
+      await expect(page.locator('.timeline > li').nth(3)).toContainText('13:35');
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(`#view=daily&date=${date}$`));
+    await expect(page.locator('.timeline > li').first().getByRole('heading')).toHaveText(title);
+  }
+});
+
+test('preparation defaults show confirmed Diamond and Grand email, with separate pending Kalai email', async ({ page }) => {
+  await page.goto('./#view=prepare&date=2026-12-13');
+  await expect(page.getByLabel('힐튼 다이아 확보·계정 반영 확인', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('그랜드 와일레아 허니문·객실 선호 메일', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('카라이 허니문·객실 선호 메일', { exact: true })).not.toBeChecked();
+  await expect(page.locator('#task-diamond').locator('..')).toContainText('패스트트랙으로 Hilton Honors Diamond 획득, 앱 반영 확인.');
+  await expect(page.locator('#task-email').locator('..')).toContainText('메일 발송 완료, 호텔 회신·객실 업그레이드는 미확인');
+  await expect(page.locator('#task-email-kalai').locator('..')).toContainText('11/23~30');
+  await expect(page.locator('#task-email-kalai').locator('..')).toContainText('12/14~17');
+  expect(await page.evaluate(() => localStorage.getItem('hawaii-honeymoon.checklist.v1'))).toBeNull();
+});
+
+test('existing browser preparation records override new defaults without automatic rewriting', async ({ page }) => {
+  const previous = JSON.stringify({ diamond: false, email: false, molokini: true, bookings: true });
+  await page.addInitScript(value => localStorage.setItem('hawaii-honeymoon.checklist.v1', value), previous);
+  await page.goto('./#view=prepare&date=2026-12-13');
+  await expect(page.getByLabel('힐튼 다이아 확보·계정 반영 확인', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('그랜드 와일레아 허니문·객실 선호 메일', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('몰로키니 예약', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('카라이 허니문·객실 선호 메일', { exact: true })).not.toBeChecked();
+  await expect(page.getByRole('button', { name: '체크 내용 저장', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => localStorage.getItem('hawaii-honeymoon.checklist.v1'))).toBe(previous);
+});
