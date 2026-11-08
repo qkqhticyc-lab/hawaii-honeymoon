@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { days, flights, places, stays, tasks, type Place } from '../src/data/trip.ts';
+import { days, flights, places, stays, tasks, transport, type Place } from '../src/data/trip.ts';
 import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
@@ -38,13 +38,13 @@ test('flight instants preserve actual chronology and supplied durations', () => 
   assert.equal((Date.parse(flights[1].departure) - Date.parse(flights[0].arrival)) / 60000, 147);
 });
 test('planning remains planning; only known reservations are confirmed', () => {
-  for (const [date, title] of [['2026-12-15', '몰로키니 스노클링 투어'], ['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-22', '오아후 일주 조인 투어'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-23', '커플 스냅 촬영']]) {
+  for (const [date, title] of [['2026-12-15', '몰로키니 스노클링 투어'], ['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-22', '와이키키 시내 렌터카 인수'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-23', '커플 스냅 촬영'], ['2026-12-24', 'Diamond Head State Monument 입장 · 정상 등산']]) {
     assert.equal(days.find(d => d.date === date)!.events.find(e => e.title === title)!.status, '계획');
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
   assert.equal(tasks.filter(t => t.done).length, 6);
-  assert.equal(tasks.length, 24);
+  assert.equal(tasks.length, 25);
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
 test('unknown locations cannot accidentally become navigation destinations', () => {
@@ -93,8 +93,8 @@ test('confirmed resort activities lead each day once and reuse the resort locati
   assert.ok(dec16.events[0].notes.includes('집합 장소와 종료 시각은 미확인.'));
   const dec17 = days.find(d => d.date === '2026-12-17')!;
   assert.ok(dec17.events[0].notes.includes('확인 메일에는 날짜·인원만 표시. 집합 장소와 종료 시각은 체크인 때 확인.'));
-  assert.equal(dec17.events[2].time, '11:30 · 예약');
-  assert.equal(dec17.events[3].flightId, 'WN2618');
+  assert.equal(dec17.events.find(e => e.title === '주유 후 OGG Hertz 반납')!.time, '11:30 · 예약');
+  assert.ok(dec17.events.some(e => e.flightId === 'WN2618'));
   assert.equal(flights.find(f => f.id === 'WN2618')!.departure, '2026-12-17T13:35:00-10:00');
 });
 
@@ -132,4 +132,63 @@ test('map route lines break at unknown stops and numbering is stable on return v
   assert.deepEqual(stops.map(s => [s.id, s.number]), [['grand', 1], ['wailea', 2]]);
   const day18 = mapSegments(days.find(d => d.date === '2026-12-18')!.routes);
   assert.deepEqual(day18.map(s => [s.from, s.to]), [['visitor', 'summit']]);
+});
+
+test('Oahu main routes match day rental, Hanauma return and separate hiking/dinner transport', () => {
+  const dec22 = days.find(d => d.date === '2026-12-22')!;
+  const dec23 = days.find(d => d.date === '2026-12-23')!;
+  const dec24 = days.find(d => d.date === '2026-12-24')!;
+  assert.deepEqual(dec22.routes, [{ mode: '차량', stops: ['kalai', 'dole', 'outlet', 'kalai'], note: '당일 렌트 계획' }]);
+  assert.deepEqual(dec23.routes.map(r => [r.mode, r.stops]), [['교통편 미정', ['kalai', 'hanauma', 'kalai']]]);
+  assert.deepEqual(dec24.routes.map(r => [r.mode, r.stops]), [
+    ['차량', ['kalai', 'diamondPark', 'kalai']], ['도보', ['kalai', 'orchids', 'kalai']],
+  ]);
+  assert.equal(places.diamondPark.query, 'Diamond Head State Monument');
+  assert.match(places.diamond.name, /비치 전망대/);
+  assert.equal(mapLocations.diamondPark, undefined);
+  assert.equal(mapLocations.photo, undefined);
+  assert.deepEqual(mapSegments([dec24.routes[0]]), []);
+  assert.equal(mapSegments([dec24.routes[1]]).length, 2);
+  for (const id of ['diamond', 'kahala', 'village', 'macadamia', 'chinaman', 'sunset'] as const) {
+    assert.ok(!days.some(d => d.events.some(e => e.place === id) || d.routes.some(r => r.stops.includes(id))), id);
+  }
+  assert.ok(!days.some(d => d.routes.some(r => r.mode === '투어 차량')));
+  const detours = dec23.events.filter(e => e.status === '선택');
+  assert.equal(detours.length, 1);
+  assert.match(detours[0].title, /할로나 블로우홀 또는 샌디비치 한 곳/);
+  assert.match(dec23.events.find(e => e.place === 'photo')!.notes.join(' '), /공식 일몰 시각이나 작가 확정 시간이 아닙니다/);
+  assert.equal(dec24.events.find(e => e.place === 'orchids')!.time, '16:45 · 예약');
+  assert.equal(dec24.events.find(e => e.place === 'orchids')!.status, '확정');
+});
+
+test('retired tour task is inactive while old browser records and new pending reservations coexist', () => {
+  assert.ok(!tasks.some(t => t.id === 'tour'));
+  for (const id of ['oahu-day-rental', 'diamond-head-entry', 'hanauma', 'photo']) assert.equal(tasks.find(t => t.id === id)!.done, false);
+  const migrated = loadChecklist('{"tour":true,"hanauma":true,"photo":true,"bookings":false,"diamond":true}');
+  assert.equal(migrated.hanauma, true);
+  assert.equal(migrated.photo, true);
+  assert.equal(migrated.bookings, false);
+  assert.equal(migrated.diamond, true);
+  assert.equal(migrated['oahu-day-rental'], false);
+  assert.equal(migrated['diamond-head-entry'], false);
+  assert.equal(migrated.tour, undefined);
+  const oahu = transport[2];
+  assert.ok(!/조인|투어 차량/.test(JSON.stringify(oahu)));
+  for (const part of ['12/21·25 공항 한인택시 계획', '12/22 와이키키 당일 렌트', '12/23 하나우마베이 왕복 교통 미확정', '12/24 등산 택시 왕복 계획']) assert.ok(oahu.detail.includes(part));
+});
+
+test('new target times do not become operator reservations or opening hours', () => {
+  const dec12 = days.find(d => d.date === '2026-12-12')!;
+  assert.match(dec12.alert!, /09:40 도착 → 12:07 출발/);
+  assert.match(dec12.alert!, /2시간 27분/);
+  assert.equal(dec12.events.find(e => e.title === 'Hertz 차량 인수')!.time, '14:00 · 예약');
+  for (const day of days.filter(d => d.date <= '2026-12-24')) {
+    for (const event of day.events.filter(e => e.status !== '확정' && /\d{2}:\d{2}/.test(e.time))) {
+      assert.match(event.time, /목표|예상|계획|예약상/, `${day.date}: ${event.title}`);
+    }
+  }
+  const dec14 = days.find(d => d.date === '2026-12-14')!;
+  assert.equal(dec14.events[0].time, '03:30~04:00 · 목표');
+  assert.equal(dec14.events.find(e => e.place === 'haleakala')!.time, '03:00~07:00 · 예약 입장 구간');
+  assert.equal(days.find(d => d.date === '2026-12-17')!.events.find(e => e.title === '빅아일랜드 렌터카 인수')!.status, '확인 필요');
 });
