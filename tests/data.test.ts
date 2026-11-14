@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { days, flights, places, stays, tasks, transport, type Place } from '../src/data/trip.ts';
-import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
+import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, milestones, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
 
@@ -38,12 +38,12 @@ test('flight instants preserve actual chronology and supplied durations', () => 
   assert.equal((Date.parse(flights[1].departure) - Date.parse(flights[0].arrival)) / 60000, 147);
 });
 test('planning remains planning; only known reservations are confirmed', () => {
-  for (const [date, title] of [['2026-12-15', '몰로키니 스노클링 투어'], ['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-22', '와이키키 시내 렌터카 인수'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-23', '커플 스냅 촬영'], ['2026-12-24', 'Diamond Head State Monument 입장 · 정상 등산']]) {
+  for (const [date, title] of [['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-22', '와이키키 시내 렌터카 인수'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-23', '커플 스냅 촬영 · 미예약'], ['2026-12-24', 'Diamond Head State Monument 입장 · 정상 등산']]) {
     assert.equal(days.find(d => d.date === date)!.events.find(e => e.title === title)!.status, '계획');
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
-  assert.equal(tasks.filter(t => t.done).length, 6);
+  assert.equal(tasks.filter(t => t.done).length, 7);
   assert.equal(tasks.length, 25);
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
@@ -67,7 +67,7 @@ test('checklist corrupt storage recovery and safe partial migration', () => {
   assert.equal(loadChecklist('[]').bookings, true);
   assert.equal(loadChecklist('{"bookings":false,"esta":true,"molokini":"yes"}').bookings, false);
   assert.equal(loadChecklist('{"esta":true}').esta, true);
-  assert.equal(loadChecklist('{"molokini":"yes"}').molokini, false);
+  assert.equal(loadChecklist('{"molokini":"yes"}').molokini, true);
 });
 
 test('confirmed resort activities lead each day once and reuse the resort location', () => {
@@ -156,7 +156,7 @@ test('Oahu main routes match day rental, Hanauma return and separate hiking/dinn
   const detours = dec23.events.filter(e => e.status === '선택');
   assert.equal(detours.length, 1);
   assert.match(detours[0].title, /할로나 블로우홀 또는 샌디비치 한 곳/);
-  assert.match(dec23.events.find(e => e.place === 'photo')!.notes.join(' '), /공식 일몰 시각이나 작가 확정 시간이 아닙니다/);
+  assert.match(dec23.events.find(e => e.place === 'photo')!.notes.join(' '), /작가와 합의한 실제 촬영 시각은 미확정/);
   assert.equal(dec24.events.find(e => e.place === 'orchids')!.time, '16:45 · 예약');
   assert.equal(dec24.events.find(e => e.place === 'orchids')!.status, '확정');
 });
@@ -191,4 +191,53 @@ test('new target times do not become operator reservations or opening hours', ()
   assert.equal(dec14.events[0].time, '03:30~04:00 · 목표');
   assert.equal(dec14.events.find(e => e.place === 'haleakala')!.time, '03:00~07:00 · 예약 입장 구간');
   assert.equal(days.find(d => d.date === '2026-12-17')!.events.find(e => e.title === '빅아일랜드 렌터카 인수')!.status, '확인 필요');
+});
+
+test('Calypso booking has a separate confirmed dock, land return route and independent checklist default', () => {
+  const day = days.find(d => d.date === '2026-12-15')!;
+  assert.deepEqual(day.events.slice(0, 3).map(e => [e.time, e.status, e.place]), [
+    ['06:25~06:30 · 도착 목표', '계획', 'calypsoSlip'],
+    ['06:45까지 · 예약 체크인', '확정', 'calypsoSlip'],
+    ['07:30 · 예약 출항', '확정', 'calypsoSlip'],
+  ]);
+  assert.deepEqual(day.routes.map(r => [r.mode, r.stops]), [
+    ['차량', ['grand', 'calypsoSlip', 'grand']], ['보트', ['molokini']],
+  ]);
+  assert.deepEqual(mapSegments(day.routes).map(s => [s.from, s.to]), [['grand', 'calypsoSlip'], ['calypsoSlip', 'grand']]);
+  assert.deepEqual([mapLocations.calypsoSlip!.lat, mapLocations.calypsoSlip!.lng], [20.7902267, -156.5116224]);
+  assert.match(mapLocations.calypsoSlip!.source, /20\.7902267.*-156\.5116224/);
+  assert.match(day.events[2].notes.join(' '), /하와이 12\/14 07:30 전 = 한국 12\/15 02:30 전/);
+  assert.equal(loadChecklist(null).molokini, true);
+  assert.equal(loadChecklist('{"molokini":false}').molokini, false);
+  assert.equal(loadChecklist('{"molokini":true}').molokini, true);
+  assert.equal(tasks.find(t => t.id === 'molokini')!.place, 'calypsoSlip');
+  assert.match(days.find(d => d.date === '2026-12-16')!.events.find(e => e.kind === '예비')!.notes.join(' '), /대체 예약은 확보되지 않았습니다/);
+});
+
+test('sunset candidate and booking reminders stay pending while milestones derive reservation times', () => {
+  const day = days.find(d => d.date === '2026-12-23')!;
+  const snap = day.events.find(e => e.place === 'photo')!;
+  const task = tasks.find(t => t.id === 'photo')!;
+  assert.equal(snap.time, '선셋 시간대 · 촬영 장소와 시작 시각 미확정');
+  assert.equal(snap.status, '계획');
+  assert.equal(task.done, false);
+  assert.equal(task.note, snap.notes.join(' '));
+  assert.deepEqual(task.links, snap.links);
+  assert.ok(!JSON.stringify(day).includes('17:20'));
+  for (const phrase of ['검토 중', '알로하 선셋 A', '이동 포함 90분', '예약금 10만원 + 현장 $320', '마케팅 사용 범위', '미동의 요금', '17:55']) {
+    assert.ok(task.note!.includes(phrase), phrase);
+  }
+  assert.match(tasks.find(t => t.id === 'hanauma')!.note!, /하와이 12\/21 07:00 = 한국 12\/22 02:00/);
+  assert.match(tasks.find(t => t.id === 'diamond-head-entry')!.note!, /하와이 11\/24부터/);
+  for (const [hawaii, korea] of [['2026-12-14T07:30:00-10:00', '2026-12-15T02:30:00+09:00'], ['2026-12-21T07:00:00-10:00', '2026-12-22T02:00:00+09:00']]) {
+    assert.equal(Date.parse(hawaii), Date.parse(korea));
+  }
+  assert.equal((Date.parse('2026-12-24T12:00:00-10:00') - Date.parse('2026-11-24T12:00:00-10:00')) / 86400000, 30);
+  assert.deepEqual(milestones.map(m => m.date), ['2026-12-12', '2026-12-14', '2026-12-15', '2026-12-17', '2026-12-21', '2026-12-24', '2026-12-25', '2026-12-26']);
+  for (const day of days) for (const event of day.events.filter(e => e.milestone)) {
+    assert.ok(milestones.some(m => m.date === day.date && m.text.includes(event.time)));
+  }
+  assert.equal(transport[1].status, '확인 필요');
+  assert.equal(tasks.find(t => t.id === 'jeep')!.done, false);
+  assert.equal(tasks.find(t => t.id === 'maunakea')!.done, false);
 });

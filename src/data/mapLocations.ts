@@ -17,7 +17,9 @@ export const mapLocations: Partial<Record<PlaceId, MapLocation>> = {
   orchids: { lat: 21.277878, lng: -157.831931, label: '오키즈가 있는 할레쿨라니 호텔 대표 위치', source: 'https://en.wikipedia.org/wiki/Halekulani_(hotel)' },
   wailea: { lat: 20.68141, lng: -156.44334, label: '와일레아 비치 해변 구역 · 하와이 보건부 관측 지점 기준', source: 'https://www.waterqualitydata.us/provider/STORET/21HI/21HI-000691/' },
   haleakala: { lat: 20.70972, lng: -156.25333, label: '할레아칼라 정상 구역 대표 위치 · 입장·주차·관람 지점은 예약·공원 안내 확인', source: 'https://en.wikipedia.org/wiki/Haleakal%C4%81' },
-  molokini: { lat: 20.63333, lng: -156.49611, label: '몰로키니 해상 목적지 · 실제 출항지·집합 장소 미확인', source: 'https://en.wikipedia.org/wiki/Molokini' },
+  // Exact Calypso location from the official tour page's Google Maps link.
+  calypsoSlip: { lat: 20.7902267, lng: -156.5116224, label: 'Calypso · South Ferry Dock Slip 76–78 · 체크인은 Slip 76 앞 · 주차 후 도보 이동', source: 'https://www.google.com/maps/place/Calypso/@20.7902267,-156.5116224,15z/data=!4m5!3m4!1s0x0:0xa6bcd122fd366f3d!8m2!3d20.7902267!4d-156.5116224' },
+  molokini: { lat: 20.63333, lng: -156.49611, label: '몰로키니 해상 목적지 참고 위치 · 실제 항로는 표시하지 않습니다.', source: 'https://en.wikipedia.org/wiki/Molokini' },
   visitor: { lat: 19.76139, lng: -155.45611, label: '마우나케아 방문자센터 구역', source: 'https://en.wikipedia.org/wiki/Onizuka_Center_for_International_Astronomy' },
   summit: { lat: 19.82056, lng: -155.46806, label: '마우나케아 정상 구역 대표 위치 · 차량·계약·도로 조건 확인 후 이동', source: 'https://en.wikipedia.org/wiki/Mauna_Kea' },
   town: { lat: 19.65, lng: -155.99417, label: '카일루아코나 시내 대표 위치 · 에어비앤비 위치가 아닙니다.', source: 'https://en.wikipedia.org/wiki/Kailua-Kona%2C_Hawaii' },

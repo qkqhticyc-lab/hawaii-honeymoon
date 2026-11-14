@@ -11,7 +11,8 @@ export const places = {
   kalai: { name: '카라이 와이키키', query: 'Ka Lai Waikiki Beach 223 Saratoga Road Honolulu HI 96815' },
   wailea: { name: '와일레아 비치', query: 'Wailea Beach Maui' },
   haleakala: { name: '할레아칼라 정상 구역', query: 'Haleakala National Park Summit Maui' },
-  molokini: { name: '몰로키니', query: 'Molokini Crater Hawaii', note: '해상 목적지 검색입니다. 실제 출항지·집합 장소는 미확인.' },
+  molokini: { name: '몰로키니 · 해상 목적지', query: 'Molokini Crater Hawaii', note: '해상 관광 목적지. 체크인은 마알라에아 항구 Calypso Slip 76 앞이며 실제 항로는 기상에 따라 달라집니다.' },
+  calypsoSlip: { name: '칼립소 · 마알라에아 항구 Slip 76', query: 'Calypso South Ferry Dock Slip 76 101 Maalaea Rd Wailuku HI 96793', note: 'Calypso, South Ferry Dock, Slip 76–78, 101 Maalaea Rd, Wailuku, HI 96793. 체크인은 Slip 76 앞.' },
   humu: { name: 'Humu', query: 'Humuhumunukunukuapuaa Grand Wailea' },
   visitor: { name: '마우나케아 방문자센터', query: 'Maunakea Visitor Information Station' },
   summit: { name: '마우나케아 정상', query: 'Maunakea Summit', note: '정상 진입 조건·도로 개방·렌터카 계약 확인 후 이동.' },
@@ -60,7 +61,25 @@ export const transport = [
   { title: '빅아일랜드 · Hertz Jeep Wrangler 4WD 검토', status: '확인 필요' as Status, detail: '12/17~12/21 · 예약 완료 여부 및 2도어·4도어 배정 미확인', notes: ['마우나케아 정상 구간 운행 허용, 보험·면책 범위 확인 필요', '4WD 차량이라는 사실만으로 렌터카 계약상 정상 운행이 허용되는 것은 아닙니다.'] },
   { title: '오아후 · 공항택시·당일 렌트·등산 택시', status: '계획' as Status, detail: '12/21·25 공항 한인택시 계획 / 12/22 와이키키 당일 렌트 / 12/23 하나우마베이 왕복 교통 미확정 / 12/24 등산 택시 왕복 계획', notes: ['공항 한인택시 예약 미확정', '12/22 렌터카 지점·영업시간·예약·반납 마감 확인 필요. 당일 인수·반납 목표는 실제 영업시간과 다를 수 있습니다.', '12/23 추가 렌터카 대여는 기본 계획에 포함하지 않습니다.', '12/24 택시 또는 차량 호출로 공원 왕복 계획 · 입장권 2인 미예약', '12/25 픽업 10:00~10:15경 검토, HNL 11:00 전후 도착 목표'] },
 ];
-export type Event = { time: string; title: string; place: PlaceId; status: Status; notes: string[]; flightId?: string; kind?: '예비' };
+export type ReferenceLink = { label: string; url: string };
+const calypsoLink: ReferenceLink = { label: '칼립소 공식 집결지·지도 안내', url: 'https://calypsomaui.com/cruises/molokini-crater-snorkeling-tour/' };
+const hanaumaLink: ReferenceLink = { label: '하나우마베이 공식 예약', url: 'https://pros.hnl.info/hanauma-bay' };
+const diamondHeadLink: ReferenceLink = { label: '다이아몬드헤드 공식 예약 안내', url: 'https://gostateparks.hawaii.gov/diamondhead/about' };
+const sunsetLink: ReferenceLink = { label: '호놀룰루 2026년 12월 일몰 참고', url: 'https://www.timeanddate.com/sun/usa/honolulu?month=12&year=2026' };
+const photoLinks: ReferenceLink[] = [
+  { label: '검토 중인 카카아코 워터프런트파크 지도 검색', url: 'https://www.google.com/maps/search/?api=1&query=Kakaako%20Waterfront%20Park%20Honolulu' },
+  sunsetLink,
+];
+const photoNotes = [
+  '미예약 · 선셋 시간대 촬영 계획. 촬영 장소와 시작 시각 미확정. 와이키키 근거리 촬영은 대안입니다.',
+  '검토 중인 후보 · 와이키키스튜디오 알로하 선셋 A, 2인 단독. 카카아코 워터프런트파크, 이동 포함 90분.',
+  '후보 상품 안내 기준 마케팅 동의 이벤트가 · 예약금 10만원 + 현장 $320.',
+  '예약 여부·담당 작가·카메라·렌즈·픽업·복귀·실제 촬영 시간·마케팅 사용 범위 및 미동의 요금 확인 필요.',
+  '12/23 호놀룰루 일몰 약 17:55는 참고 정보입니다. 작가와 합의한 실제 촬영 시각은 미확정입니다.',
+];
+const hanaumaNote = '12/23 입장권 2인·왕복 교통편 미확정. 예약 오픈 하와이 12/21 07:00 = 한국 12/22 02:00. 08:00 전후 입장은 목표이며 실제 예약 슬롯에 따라 조정합니다.';
+const diamondHeadNote = '12/24 등산용 입장권 2인 미예약. 방문 30일 전인 하와이 11/24부터 예약 화면 확인. 정확한 오픈 시각은 확인 필요. 08:00~10:00는 목표이며 실제 예약 슬롯에 따라 조정합니다.';
+export type Event = { time: string; title: string; place: PlaceId; status: Status; notes: string[]; links?: ReferenceLink[]; milestone?: string; flightId?: string; kind?: '예비' };
 export type Route = { mode: '도보' | '차량' | '비행기' | '투어 차량' | '한인택시' | '보트' | '교통편 미정'; stops: PlaceId[]; note?: string };
 export type Day = { date: string; island: string; title: string; intro: string; departureStay?: Stay['id']; events: Event[]; routes: Route[]; alert?: string };
 const e = (time: string, title: string, place: PlaceId, status: Status = '계획', notes: string[] = [], extra: Partial<Event> = {}): Event => ({ time, title, place, status, notes, ...extra });
@@ -85,22 +104,24 @@ export const days: Day[] = [
     ], routes: [{ mode: '도보', stops: ['grand', 'wailea', 'grand'] }] },
   { date: '2026-12-14', island: '마우이', title: '구름 위에서 맞는 아침', intro: '할레아칼라 일출을 함께 보고, 오후는 온전히 쉬어요.', alert: '03:00~07:00는 예약 입장 구간입니다. 03:00 정각 도착 의무가 아닙니다.', events: [
       e('03:30~04:00 · 목표', '호텔 출발 · 정상 구역 이동', 'grand', '계획', ['정확한 일출 시각과 이동 여건을 확인해 실제 출발 시각을 조정합니다.']),
-      e('03:00~07:00 · 예약 입장 구간', 'Haleakala Sunrise – Summit', 'haleakala', '확정', ['12/14 차량 1대 예약', '예약 확인서와 예약자 사진 신분증 준비', '일출 예약비와 공원 입장료는 별도']),
+      e('03:00~07:00 · 예약 입장 구간', 'Haleakala Sunrise – Summit', 'haleakala', '확정', ['12/14 차량 1대 예약', '예약 확인서와 예약자 사진 신분증 준비', '일출 예약비와 공원 입장료는 별도'], { milestone: '할레아칼라 일출' }),
       e('09:30~10:30 · 예상', '호텔로 복귀 · 식사', 'grand'),
       e('오후 · 계획', '휴식 · 가벼운 식사', 'grand'),
     ], routes: [{ mode: '차량', stops: ['grand', 'haleakala', 'grand'] }] },
-  { date: '2026-12-15', island: '마우이', title: '몰로키니의 푸른 바다', intro: '오전 스노클링 투어를 계획하고 있어요. 바다를 다녀온 뒤엔 휴식.', events: [
-      e('오전 계획 · 출항·집합 시각 미정', '몰로키니 스노클링 투어', 'molokini', '계획', ['운영사·출항지·집합 시각·예약 완료 여부 미확인', '기상에 따라 코스 변경·취소 가능']),
+  { date: '2026-12-15', island: '마우이', title: '몰로키니의 푸른 바다', intro: '칼립소호 몰로키니 & 터틀타운 스노클링 · 성인 2인 확정. 투어 후에는 리조트에서 쉬어요.', events: [
+      e('06:25~06:30 · 도착 목표', '마알라에아 항구 주차장 도착', 'calypsoSlip', '계획', ['주차 후 Slip 76 앞 체크인 장소까지 이동할 여유를 둡니다. 주차비 별도.']),
+      e('06:45까지 · 예약 체크인', '마알라에아 항구 Slip 76 앞 체크인', 'calypsoSlip', '확정', ['Calypso, South Ferry Dock, Slip 76–78, 101 Maalaea Rd, Wailuku, HI 96793. 체크인은 Slip 76 앞.', '모바일 바우처 제시. 수영복·수건·신분증 준비.'], { links: [calypsoLink] }),
+      e('07:30 · 예약 출항', '칼립소호 몰로키니 & 터틀타운 스노클링 · 성인 2인 확정', 'calypsoSlip', '확정', ['조식·중식과 필수 안전용품 포함. 호텔 픽업·주차비·팁 별도.', '기상에 따라 코스가 변경될 수 있고 고래 목격은 보장되지 않습니다.', '무료 취소 마감 · 하와이 12/14 07:30 전 = 한국 12/15 02:30 전.', '이번 예약 기준 취소 조건입니다. 실제 결제 금액과 확정 귀항 시각은 자료 미확인.'], { links: [calypsoLink], milestone: '칼립소 몰로키니 & 터틀타운' }),
       e('투어 후 · 계획', '호텔 복귀 · 식사', 'grand'),
       e('14:00 이후 · 오후 휴식 목표', '리조트에서 휴식', 'grand', '계획', ['투어 후 리조트에 복귀한 뒤 휴식합니다. 복귀 시각에 따라 조정합니다.']),
-    ], routes: [{ mode: '차량', stops: ['grand'], note: '출항지 미정 · 운영사 확인 후 호텔 왕복 경로 결정' }, { mode: '보트', stops: ['molokini'], note: '해상 투어 코스는 운영사·기상에 따라 달라집니다.' }] },
+    ], routes: [{ mode: '차량', stops: ['grand', 'calypsoSlip', 'grand'], note: '항구 왕복 차량 이동 · 체크인은 Slip 76 앞' }, { mode: '보트', stops: ['molokini'], note: '몰로키니는 해상 목적지 참고 표시. 실제 항로를 표시하지 않으며 코스는 기상에 따라 변경될 수 있습니다.' }] },
   { date: '2026-12-16', island: '마우이', title: '마우이, 조금 더 머무르기', intro: '마지막 휴양일. 무리한 계획 없이 바다와 리조트를 즐겨요.', events: [
       e('07:00 · 예약', 'Beach Bliss Yoga', 'grand', '확정', ['무료 · 성인 2명', '집합 장소와 종료 시각은 미확인.']),
       e('08:30 전후 · 목표', '조식', 'grand'),
       e('10:00 이후 · 계획', '수영장 · 비치 · 산책', 'grand'),
       e('오후 · 선택', '문화 체험 · 스파 중 선택', 'grand', '선택', ['관심 있는 프로그램의 운영·예약 여부 확인']),
       e('저녁 · 선택', 'Humu 등에서 저녁 식사', 'humu', '선택', ['예약 완료 여부 미확인']),
-      e('예비 일정', '일출 또는 몰로키니 일정 조정 여유', 'grand', '선택', ['예비일 일출 티켓은 확보되지 않았습니다. 변경 조건과 예약 가능 여부를 먼저 확인하세요.'], { kind: '예비' }),
+      e('예비 일정', '기상 변경 시 대체 가능 여부 확인', 'grand', '선택', ['기상으로 일정이 바뀌면 운영사와 대체 가능 여부 확인. 12/16 일출 입장권·몰로키니 대체 예약은 확보되지 않았습니다.'], { kind: '예비' }),
     ], routes: [{ mode: '도보', stops: ['grand', 'wailea', 'grand'], note: 'Humu 방문은 선택 일정입니다.' }] },
   { date: '2026-12-17', island: '마우이 → 빅아일랜드', title: '다음 섬, 빅아일랜드', intro: '짐을 정리하고 코나로. 도착 후에는 장을 보고 편안히 쉬어요.', departureStay: 'grand', events: [
       e('07:00 · 선택한 시작 시각', 'Beginners Hula · 무료 입문 훌라', 'grand', '확정', ['무료 · 성인 2명 · 예약 확인 메일 발급 완료', '확인 메일에는 날짜·인원만 표시. 집합 장소와 종료 시각은 체크인 때 확인.']),
@@ -150,30 +171,30 @@ export const days: Day[] = [
       e('16:45~17:15 · 목표', '와이키키 복귀 · 주유 · 차량 반납', 'waikiki', '계획', ['실제 반납 마감에 맞춰 복귀를 앞당길 수 있습니다. 렌터카 지점·영업시간·예약은 미확정입니다.']),
       e('저녁 · 계획', '식사 · 휴식', 'kalai'),
     ], routes: [{ mode: '차량', stops: ['kalai', 'dole', 'outlet', 'kalai'], note: '당일 렌트 계획' }] },
-  { date: '2026-12-23', island: '오아후', title: '하나우마베이와 석양의 우리', intro: '하나우마베이 왕복 후 충분히 쉬고, 와이키키 해변에서 커플 스냅을 계획해요.', events: [
+  { date: '2026-12-23', island: '오아후', title: '하나우마베이와 석양의 우리', intro: '하나우마베이 왕복 후 샤워·휴식·촬영 준비. 선셋 스냅은 미예약이며 장소와 시작 시각을 검토 중이에요.', events: [
       e('07:15 전후 · 출발 목표', '카라이에서 출발', 'kalai', '계획', ['왕복 교통편 미확정. 실제 입장 슬롯과 이동편에 따라 출발 시각을 조정합니다. 추가 렌터카 대여는 기본 계획에 포함하지 않습니다.']),
-      e('08:00 전후 · 입장 목표', '하나우마베이 스노클링', 'hanauma', '계획', ['입장권·실제 입장 슬롯·왕복 교통편·예약 완료 여부 미확인. 목표 시각은 확정 입장 시각이나 운영시간이 아닙니다.']),
+      e('08:00 전후 · 입장 목표', '하나우마베이 스노클링', 'hanauma', '계획', [hanaumaNote], { links: [hanaumaLink] }),
       e('11:15 전후 · 출발 목표', '하나우마베이에서 출발', 'hanauma'),
       e('복귀 중 · 당일 선택', '할로나 블로우홀 또는 샌디비치 한 곳', 'halona', '선택', ['복귀 차량에 경유가 가능하고 스냅 준비 시간을 침범하지 않을 때 한 곳만 선택합니다. 기본 지도 동선에는 포함하지 않습니다.']),
       e('12:00~12:30 · 호텔 복귀 목표', '카라이 복귀', 'kalai'),
       e('13:00~16:15 · 계획', '점심 · 샤워 · 휴식 · 촬영 준비', 'kalai'),
-      e('17:20~17:50 · 촬영 목표', '커플 스냅 촬영', 'photo', '계획', ['카라이에서 걸어갈 수 있는 와이키키 해변 한 곳 우선.', '작가·집합 장소·실제 촬영 시각·예약은 미확정. 이 시간은 공식 일몰 시각이나 작가 확정 시간이 아닙니다.']),
+      e('선셋 시간대 · 촬영 장소와 시작 시각 미확정', '커플 스냅 촬영 · 미예약', 'photo', '계획', photoNotes, { links: photoLinks }),
       e('저녁 · 계획', '저녁 식사', 'kalai'),
     ], routes: [{ mode: '교통편 미정', stops: ['kalai', 'hanauma', 'kalai'], note: '하나우마베이 왕복 교통편 미확정. 촬영 장소는 확정 후 별도 안내.' }] },
   { date: '2026-12-24', island: '오아후', title: '정상에서 시작하는 크리스마스이브', intro: '오전 다이아몬드헤드 정상 등산을 계획하고, 충분히 쉰 뒤 오키즈에서 저녁을 함께해요.', events: [
       e('07:30 전후 · 출발 목표', '카라이에서 택시 또는 차량 호출로 출발', 'kalai'),
-      e('08:00~10:00 · 목표', 'Diamond Head State Monument 입장 · 정상 등산', 'diamondPark', '계획', ['입장권 2인 미예약. 실제 예약 슬롯에 따라 일정을 조정합니다.', '운영시간·입장 조건·예약 오픈일 확인 필요. 목표 시간은 확정 입장 슬롯이나 영업시간이 아닙니다.', '정확한 입구·트레일헤드 좌표와 승하차 지점 확인 필요.']),
+      e('08:00~10:00 · 목표', 'Diamond Head State Monument 입장 · 정상 등산', 'diamondPark', '계획', [diamondHeadNote, '운영시간·입장 조건·정확한 입구·트레일헤드 좌표와 승하차 지점 확인 필요.'], { links: [diamondHeadLink] }),
       e('10:30~11:00 · 복귀 목표', '카라이 복귀', 'kalai'),
       e('오전 늦게~오후 · 계획', '와이키키 산책 · 점심 · 휴식', 'waikiki'),
       e('16:30 · 호텔 출발 목표', '호텔에서 오키즈로 도보 출발', 'kalai'),
-      e('16:45 · 예약', 'Halekulani Orchids · 크리스마스이브 뷔페', 'orchids', '확정', ['2인 예약 · 사용자가 확인한 총액 약 US$374']),
+      e('16:45 · 예약', 'Halekulani Orchids · 크리스마스이브 뷔페', 'orchids', '확정', ['2인 예약 · 사용자가 확인한 총액 약 US$374'], { milestone: '오키즈 · 2인 예약' }),
       e('저녁 · 계획', '산책 · 귀국 짐 정리', 'kalai'),
     ], routes: [{ mode: '차량', stops: ['kalai', 'diamondPark', 'kalai'], note: '택시 또는 차량 호출 왕복 계획 · 공원 입구·트레일헤드의 정확한 위치 확인 필요' }, { mode: '도보', stops: ['kalai', 'orchids', 'kalai'], note: '16:30 호텔 출발 목표 · 16:45 오키즈 예약' }] },
   { date: '2026-12-25', island: '오아후 → 한국', title: '마할로, 하와이', intro: '관광 없이 여유 있게 공항으로. 오늘 밤은 귀국 항공편에서 보내요.', departureStay: 'kalai', events: [e('오전 · 계획', '조식 · 짐 정리 · 체크아웃', 'kalai'), e('10:00~10:15경 · 검토', '한인택시 픽업', 'kalai', '계획', ['예약 완료 여부 미확인']), e('11:00 전후 · 목표', '호놀룰루 공항 도착', 'hnl'), f('KE052')], routes: [{ mode: '한인택시', stops: ['kalai', 'hnl'] }, { mode: '비행기', stops: ['hnl', 'icn'] }] },
   { date: '2026-12-26', island: '한국', title: '우리의 여행, 오래도록', intro: '한국시간 20:20 인천 도착. 두 사람의 하와이 여행을 마무리해요.', events: [e('20:20 · 한국시간 / 예약', 'KE052 인천 도착 · 여행 종료', 'icn', '확정', ['출발은 12/25 14:25 하와이시간. 최신 운항 변경은 출발 전 재확인.'])], routes: [{ mode: '비행기', stops: ['hnl', 'icn'], note: '12/25 하와이 출발 → 12/26 한국 도착' }] },
 ];
-export type Task = { id: string; title: string; done: boolean; date: string; place: PlaceId; note?: string };
-const t = (id: string, title: string, date: string, place: PlaceId, done = false, note?: string): Task => ({ id, title, date: `2026-12-${date}`, place, done, note });
+export type Task = { id: string; title: string; done: boolean; date: string; place: PlaceId; note?: string; links?: ReferenceLink[] };
+const t = (id: string, title: string, date: string, place: PlaceId, done = false, note?: string, links?: ReferenceLink[]): Task => ({ id, title, date: `2026-12-${date}`, place, done, note, links });
 export const tasks: Task[] = [
   t('bookings', '항공·숙소 예약', '12', 'grand', true, '전체 여행 12/12~12/26 · 항공 5편 / 숙소 3곳'),
   t('k5', '마우이 K5 예약', '12', 'ogg', true, '12/12 인수 → 12/17 반납'),
@@ -181,13 +202,13 @@ export const tasks: Task[] = [
   t('orchids', '오키즈 예약', '24', 'orchids', true, '16:45 · 2인'),
   t('esta', '두 사람 ESTA 최종 승인 확인', '12', 'icn'),
   t('transfer', '별도 발권 환승·수하물 처리 확인', '12', 'hnl'),
-  t('molokini', '몰로키니 예약', '15', 'molokini'),
+  t('molokini', '몰로키니 예약', '15', 'calypsoSlip', true, '칼립소호 몰로키니 & 터틀타운 스노클링 · 성인 2인 확정. 06:45까지 Slip 76 앞 체크인, 07:30 출항. 무료 취소 마감 하와이 12/14 07:30 전 = 한국 12/15 02:30 전.', [calypsoLink]),
   t('jeep', '빅아일랜드 렌터카 예약 확인', '17', 'koa'),
   t('maunakea', '마우나케아 차량·도로·보험 조건 확인', '18', 'summit'),
   t('oahu-day-rental', '12/22 와이키키 당일 렌터카', '22', 'waikiki', false, '인수 지점·영업시간·예약·반납 마감 확인 필요. 08:30~09:00 인수, 16:45~17:15 반납은 목표 시간입니다.'),
-  t('diamond-head-entry', '12/24 다이아몬드헤드 입장권 2인', '24', 'diamondPark', false, '입장권 2인 미예약. 08:00~10:00는 목표이며 실제 예약 슬롯·운영시간·예약 오픈일·입구 위치 확인 필요.'),
-  t('hanauma', '하나우마베이 입장·왕복 교통편 예약', '23', 'hanauma', false, '입장 슬롯·왕복 교통편·예약 완료 여부 미확인. 08:00 전후 입장 목표에 맞춰 이동편 확인.'),
-  t('photo', '커플 스냅 예약', '23', 'photo', false, '와이키키 해변 촬영 계획. 작가·집합 장소·실제 시각·예약 미확정. 17:20~17:50는 촬영 목표이며 공식 일몰 시각이 아닙니다.'),
+  t('diamond-head-entry', '12/24 다이아몬드헤드 입장권 2인', '24', 'diamondPark', false, diamondHeadNote, [diamondHeadLink]),
+  t('hanauma', '하나우마베이 입장·왕복 교통편 예약', '23', 'hanauma', false, hanaumaNote, [hanaumaLink]),
+  t('photo', '커플 스냅 예약', '23', 'photo', false, photoNotes.join(' '), photoLinks),
   t('diamond', '힐튼 다이아 확보·계정 반영 확인', '12', 'grand', true, '패스트트랙으로 Hilton Honors Diamond 획득, 앱 반영 확인.'),
   t('email', '그랜드 와일레아 허니문·객실 선호 메일', '12', 'grand', true, '메일 발송 완료, 호텔 회신·객실 업그레이드는 미확인. 훌라 문의는 포함하지 않았습니다. 마지막 확인 12/5~8은 추천 계획입니다.'),
   t('email-kalai', '카라이 허니문·객실 선호 메일', '21', 'kalai', false, '사전 요청 11/23~30, 마지막 확인 12/14~17은 추천 계획이며 발송 완료로 확인되지 않았습니다.'),

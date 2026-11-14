@@ -18,6 +18,14 @@ export function readLocation(hash: string, now = new Date()): { date: string; vi
   return { date: days.some(d => d.date === p.get('date')) ? p.get('date')! : defaultDate(now), view: views.some(v => v.id === p.get('view')) ? p.get('view') as View : 'daily' };
 }
 export function locationHash(date: string, view: View) { return `#view=${view}&date=${date}`; }
+export const milestones = [
+  { date: '2026-12-12', text: '한국 출발 → 호놀룰루 환승 → 마우이' },
+  { date: '2026-12-17', text: '마우이 → 빅아일랜드 · 숙소 이동' },
+  { date: '2026-12-21', text: '빅아일랜드 → 오아후 · 숙소 이동' },
+  { date: '2026-12-25', text: '하와이 출발 · 호텔 숙박 없음' },
+  { date: '2026-12-26', text: '한국 도착 · 20:20 한국시간' },
+  ...days.flatMap(day => day.events.filter(event => event.milestone).map(event => ({ date: day.date, text: `${event.milestone} · ${event.time}` }))),
+].sort((a, b) => a.date.localeCompare(b.date));
 export function nightStay(date: string) { return stays.find(s => s.checkIn <= date && date < s.checkOut); }
 export function flightLocal(iso: string, zone: string) {
   const time = new Intl.DateTimeFormat('ko-KR', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
