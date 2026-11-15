@@ -56,9 +56,19 @@ export const flights: Flight[] = [
   { id: 'WN2269', airline: 'Southwest', from: 'koa', to: 'hnl', departure: '2026-12-21T15:40:00-10:00', arrival: '2026-12-21T16:30:00-10:00', departureZone: 'Pacific/Honolulu', arrivalZone: 'Pacific/Honolulu', duration: '50분', status: '확정', notes: [] },
   { id: 'KE052', airline: '대한항공', from: 'hnl', to: 'icn', departure: '2026-12-25T14:25:00-10:00', arrival: '2026-12-26T20:20:00+09:00', departureZone: 'Pacific/Honolulu', arrivalZone: 'Asia/Seoul', duration: '10시간 55분', status: '확정', notes: ['한국 도착은 다음 날 12/26입니다.'] },
 ];
+const konaRental = {
+  vehicle: 'Hertz Jeep Wrangler · Jeep 4x4 Guaranteed (V0)',
+  pickup: '15:00 · 예약',
+  dropoff: '13:00 · 예약',
+  office: 'KOA Hertz (Kona Keahole Airport) · 73-104 Aulepe Street, Kailua-Kona, HI 96740',
+  hours: '예약 안내 기준 영업시간 · 매일 05:00~22:30',
+  price: '예약 총액 US$337.76 · 4일',
+  doors: '예약 표기 2도어/4도어 · 실제 배정 미확정',
+};
+const konaRentalMap = { label: 'KOA Hertz 영업소 지도', url: 'https://www.google.com/maps/search/?api=1&query=Hertz+73-104+Aulepe+Street+Kailua-Kona+HI+96740' };
 export const transport = [
   { title: '마우이 · Hertz K5 또는 동급', status: '확정' as Status, detail: 'OGG 인수 12/12 14:00 → 반납 12/17 11:30 · D0 / SCAR', notes: ['과거 예약 확인 예상 총액 US$218.50 · 현장 후불 (실시간 판매가 아님)', '28인치 1개 + 26인치 1개 캐리어', '기존 더 비싼 예약의 중복 취소 여부 확인 필요'] },
-  { title: '빅아일랜드 · Hertz Jeep Wrangler 4WD 검토', status: '확인 필요' as Status, detail: '12/17~12/21 · 예약 완료 여부 및 2도어·4도어 배정 미확인', notes: ['마우나케아 정상 구간 운행 허용, 보험·면책 범위 확인 필요', '4WD 차량이라는 사실만으로 렌터카 계약상 정상 운행이 허용되는 것은 아닙니다.'] },
+  { title: `빅아일랜드 · ${konaRental.vehicle}`, status: '확정' as Status, detail: 'KOA Hertz 인수 12/17 15:00 → 같은 지점 반납 12/21 13:00 · 하와이 현지시간', notes: [konaRental.price, konaRental.office, konaRental.hours, konaRental.doors, '마우나케아 정상 구간 운행 허용과 보험·면책 범위는 별도 확인 필요'] },
   { title: '오아후 · 공항택시·당일 렌트·등산 택시', status: '계획' as Status, detail: '12/21·25 공항 한인택시 계획 / 12/22 와이키키 당일 렌트 / 12/23 하나우마베이 왕복 교통 미확정 / 12/24 등산 택시 왕복 계획', notes: ['공항 한인택시 예약 미확정', '12/22 렌터카 지점·영업시간·예약·반납 마감 확인 필요. 당일 인수·반납 목표는 실제 영업시간과 다를 수 있습니다.', '12/23 추가 렌터카 대여는 기본 계획에 포함하지 않습니다.', '12/24 택시 또는 차량 호출로 공원 왕복 계획 · 입장권 2인 미예약', '12/25 픽업 10:00~10:15경 검토, HNL 11:00 전후 도착 목표'] },
 ];
 export type ReferenceLink = { label: string; url: string };
@@ -128,10 +138,10 @@ export const days: Day[] = [
       e('오전 · 계획', '조식 · 짐 정리 · 체크아웃', 'grand', '계획', ['예약 당시 체크아웃 11:00 안내. 차량 반납에 맞춰 출발.']),
       e('09:45~10:00 · 호텔 출발 목표', '호텔 출발 · 주유 · 공항 이동', 'grand', '계획', ['11:30 OGG 차량 반납에 맞춰 이동 여건에 따라 조정합니다.']),
       e('11:30 · 예약', '주유 후 OGG Hertz 반납', 'ogg', '확정'), f('WN2618'),
-      e('도착 후 · 미정', '빅아일랜드 렌터카 인수', 'koa', '확인 필요', ['Hertz Jeep Wrangler 4WD 검토 · 예약 완료 여부 미확인']),
+      e(konaRental.pickup, '빅아일랜드 렌터카 인수', 'koa', '확정', [konaRental.vehicle, konaRental.office, konaRental.doors, '인수 시 운전면허증·신용카드·여권 지참'], { links: [konaRentalMap] }),
       e('16:00 이후 · 예약 안내', '코나 숙소 체크인', 'kona', '확정', ['주차·출입 방법 확인 필요']),
       e('저녁 · 계획', '장보기 · 식사 · 휴식', 'kona'),
-    ], routes: [{ mode: '차량', stops: ['grand', 'ogg'] }, { mode: '비행기', stops: ['ogg', 'koa'] }, { mode: '차량', stops: ['koa', 'kona'], note: '렌터카 예약과 숙소 주소 확인 후 경로 결정' }] },
+    ], routes: [{ mode: '차량', stops: ['grand', 'ogg'] }, { mode: '비행기', stops: ['ogg', 'koa'] }, { mode: '차량', stops: ['koa', 'kona'], note: '15:00 KOA Hertz 인수 후 숙소 이동 · 숙소 주소 확인 필요' }] },
   { date: '2026-12-18', island: '빅아일랜드', title: '일몰에서 별빛까지', intro: '마우나케아 정상에서 일몰, 하산 후 낮은 고도의 지정 장소에서 별 관찰.', alert: '정상은 조건 확인 후 이동하는 계획입니다. 차량 계약·보험·도로 개방·기상을 확인하세요.', events: [
       e('오전 · 계획', '여유로운 아침 · 휴식', 'kona'),
       e('13:00 전후 · 출발 목표', '코나에서 출발', 'kona'),
@@ -156,7 +166,7 @@ export const days: Day[] = [
     ], routes: [{ mode: '차량', stops: ['kona', 'rainbow', 'hilo', 'volcano', 'kona'], note: '남부 도로를 이용하는 순환 동선 초안 · 지도 검색의 추천 경로와 다를 수 있습니다.' }] },
   { date: '2026-12-21', island: '빅아일랜드 → 오아후', title: '와이키키로 향하는 날', intro: '오전은 짐 정리, 오후에는 섬 이동. 저녁은 새 숙소 근처에서 가볍게.', departureStay: 'kona', events: [
       e('오전 · 계획', '짐 정리 · 체크아웃', 'kona', '계획', ['체크아웃 시각 확인 필요']),
-      e('출발 전 · 계획', '주유 · 렌터카 반납 · 공항 이동', 'koa', '확인 필요', ['반납 조건과 시각 미확인']),
+      e(konaRental.dropoff, '빅아일랜드 렌터카 반납', 'koa', '확정', [konaRental.office, '주유가 필요하면 반납 전에 진행. 차량 반납 후 KOA 터미널로 이동.'], { links: [konaRentalMap] }),
       e('13:30~14:00 · 터미널 도착 목표', 'KOA 터미널 도착 · 탑승 준비', 'koa'),
       f('WN2269'),
       e('도착 후 · 계획', '한인택시로 카라이 이동', 'kalai', '계획', ['공항 한인택시 픽업 예약 미확정']),
@@ -203,7 +213,7 @@ export const tasks: Task[] = [
   t('esta', '두 사람 ESTA 최종 승인 확인', '12', 'icn'),
   t('transfer', '별도 발권 환승·수하물 처리 확인', '12', 'hnl'),
   t('molokini', '몰로키니 예약', '15', 'calypsoSlip', true, '칼립소호 몰로키니 & 터틀타운 스노클링 · 성인 2인 확정. 06:45까지 Slip 76 앞 체크인, 07:30 출항. 무료 취소 마감 하와이 12/14 07:30 전 = 한국 12/15 02:30 전.', [calypsoLink]),
-  t('jeep', '빅아일랜드 렌터카 예약 확인', '17', 'koa'),
+  t('jeep', '빅아일랜드 렌터카 예약 완료', '17', 'koa', true, `${konaRental.vehicle} · 12/17 15:00 인수 → 12/21 13:00 반납 (하와이 현지시간, 모두 KOA Hertz). ${konaRental.price}.`, [konaRentalMap]),
   t('maunakea', '마우나케아 차량·도로·보험 조건 확인', '18', 'summit'),
   t('oahu-day-rental', '12/22 와이키키 당일 렌터카', '22', 'waikiki', false, '인수 지점·영업시간·예약·반납 마감 확인 필요. 08:30~09:00 인수, 16:45~17:15 반납은 목표 시간입니다.'),
   t('diamond-head-entry', '12/24 다이아몬드헤드 입장권 2인', '24', 'diamondPark', false, diamondHeadNote, [diamondHeadLink]),

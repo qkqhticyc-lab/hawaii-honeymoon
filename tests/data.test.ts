@@ -43,7 +43,7 @@ test('planning remains planning; only known reservations are confirmed', () => {
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
-  assert.equal(tasks.filter(t => t.done).length, 7);
+  assert.equal(tasks.filter(t => t.done).length, 8);
   assert.equal(tasks.length, 25);
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
@@ -190,7 +190,17 @@ test('new target times do not become operator reservations or opening hours', ()
   const dec14 = days.find(d => d.date === '2026-12-14')!;
   assert.equal(dec14.events[0].time, '03:30~04:00 · 목표');
   assert.equal(dec14.events.find(e => e.place === 'haleakala')!.time, '03:00~07:00 · 예약 입장 구간');
-  assert.equal(days.find(d => d.date === '2026-12-17')!.events.find(e => e.title === '빅아일랜드 렌터카 인수')!.status, '확인 필요');
+  for (const [date, title, time] of [
+    ['2026-12-17', '빅아일랜드 렌터카 인수', '15:00 · 예약'],
+    ['2026-12-21', '빅아일랜드 렌터카 반납', '13:00 · 예약'],
+  ]) {
+    const event = days.find(d => d.date === date)!.events.find(e => e.title === title)!;
+    assert.deepEqual([event.time, event.status, event.place], [time, '확정', 'koa']);
+  }
+  assert.equal(loadChecklist(null).jeep, true);
+  assert.equal(loadChecklist(null).maunakea, false);
+  assert.equal(transport[1].status, '확정');
+  assert.match(transport[1].notes.join(' '), /US\$337\.76.*마우나케아 정상 구간 운행 허용과 보험·면책 범위는 별도 확인 필요/);
 });
 
 test('Calypso booking has a separate confirmed dock, land return route and independent checklist default', () => {
@@ -237,7 +247,4 @@ test('sunset candidate and booking reminders stay pending while milestones deriv
   for (const day of days) for (const event of day.events.filter(e => e.milestone)) {
     assert.ok(milestones.some(m => m.date === day.date && m.text.includes(event.time)));
   }
-  assert.equal(transport[1].status, '확인 필요');
-  assert.equal(tasks.find(t => t.id === 'jeep')!.done, false);
-  assert.equal(tasks.find(t => t.id === 'maunakea')!.done, false);
 });
