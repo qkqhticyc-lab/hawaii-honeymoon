@@ -27,6 +27,7 @@ export const mapLocations: Partial<Record<PlaceId, MapLocation>> = {
   hilo: { lat: 19.70556, lng: -155.08583, label: '힐로 시내 대표 위치 · 식사 장소는 미정', source: 'https://en.wikipedia.org/wiki/Hilo%2C_Hawaii' },
   volcano: { lat: 19.383, lng: -155.2, label: '화산국립공원 대표 위치 · 실제 관람·주차 지점과 개방 상태는 재확인', source: 'https://en.wikipedia.org/wiki/Hawai%CA%BBi_Volcanoes_National_Park' },
   waikiki: { lat: 21.2752, lng: -157.8312, label: '와이키키 지역 대표 위치 · 개별 방문지는 일정에 따라 조정', source: 'https://en.wikipedia.org/wiki/Waikiki' },
+  oahuHertz: { lat: 21.27617, lng: -157.82518, label: '하얏트 리젠시 와이키키 건물 대표 위치 · Hertz 반납 차고 입구는 지점 안내 확인', source: 'https://mapcarta.com/31935644' },
   halona: { lat: 21.28221, lng: -157.67645, label: '할로나 블로우홀 구역 · 당일 선택 경유의 가능 여부와 실제 승하차 지점 확인 필요', source: 'https://en.wikipedia.org/wiki/Halona_Blowhole' },
   sandy: { lat: 21.28525, lng: -157.67261, label: '샌디비치 구역 · 당일 선택 경유의 가능 여부와 실제 승하차 지점 확인 필요', source: 'https://mapcarta.com/W95838103' },
   chinaman: { lat: 21.5092, lng: -157.8297, label: '중국인 모자섬 자체의 대표 위치 · 육상 전망·정차 지점은 미확인', source: 'https://en.wikipedia.org/wiki/Mokoli%CA%BBi' },

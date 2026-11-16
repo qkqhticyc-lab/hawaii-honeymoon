@@ -48,7 +48,7 @@ test('date selection persists through reload and history, with correct accommoda
 test('checklist persists, filters work, and stored checks do not confirm itinerary', async ({ page }) => {
   await page.goto('./#view=prepare&date=2026-12-23');
   await expect(page.getByLabel('항공·숙소 예약', { exact: true })).toBeChecked();
-  const checkbox = page.getByLabel('하나우마베이 입장·왕복 교통편 예약', { exact: true });
+  const checkbox = page.getByLabel('하나우마베이 입장권 2인 예약', { exact: true });
   await checkbox.check();
   await page.getByRole('button', { name: '체크 내용 저장', exact: true }).click();
   await expect(page.locator('.save-status')).toContainText('저장했어요');
@@ -89,16 +89,16 @@ test('keyboard access, touch targets, map links and flight chronology', async ({
 test('storage failure does not break itinerary or preparation screen', async ({ page }) => {
   await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error('Storage unavailable'); }; });
   await page.goto('./#view=prepare&date=2026-12-12');
-  await page.getByLabel('하나우마베이 입장·왕복 교통편 예약', { exact: true }).check();
+  await page.getByLabel('하나우마베이 입장권 2인 예약', { exact: true }).check();
   await page.getByRole('button', { name: '체크 내용 저장', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('저장하지 못했어요');
   await expect(page.locator('.save-status')).toContainText('저장 전 변경 1개');
-  await expect(page.getByLabel('하나우마베이 입장·왕복 교통편 예약', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('하나우마베이 입장권 2인 예약', { exact: true })).toBeChecked();
 });
 
 test('checklist changes stay as drafts until save; cancellation and saved unchecking persist', async ({ page }) => {
   await page.goto('./#view=prepare&date=2026-12-23');
-  const checkbox = page.getByLabel('하나우마베이 입장·왕복 교통편 예약', { exact: true });
+  const checkbox = page.getByLabel('하나우마베이 입장권 2인 예약', { exact: true });
   const save = page.getByRole('button', { name: '체크 내용 저장', exact: true });
   await expect(save).toBeDisabled();
   await checkbox.check();
@@ -108,7 +108,7 @@ test('checklist changes stay as drafts until save; cancellation and saved unchec
   await expect(checkbox).not.toBeChecked();
   await checkbox.check();
   await page.locator('nav a').filter({ hasText: '날짜별 일정' }).click();
-  await expect(page.locator('.day-task-card')).toContainText('하나우마베이 입장·왕복 교통편 예약');
+  await expect(page.locator('.day-task-card')).toContainText('하나우마베이 입장권 2인 예약');
   await page.locator('nav a').filter({ hasText: '준비할 일' }).click();
   await expect(checkbox).toBeChecked();
   await page.getByRole('button', { name: '변경 취소', exact: true }).click();
@@ -250,18 +250,18 @@ test('existing browser preparation records override new defaults without automat
 
 test('Oahu dates show the replacement itinerary and matching main map routes', async ({ page }, testInfo) => {
   await page.goto('./#view=daily&date=2026-12-22');
-  await expect(page.locator('.timeline > li').first()).toContainText('08:30~09:00 · 목표');
-  await expect(page.locator('.timeline > li').first()).toContainText('와이키키 시내 렌터카 인수');
+  await expect(page.locator('.timeline > li').first()).toContainText('09:00 · 예약');
+  await expect(page.locator('.timeline > li').first()).toContainText('와이키키 Hertz 렌터카 인수');
   await expect(page.locator('.timeline')).not.toContainText('조인 투어');
   await expect(page.locator('.timeline')).not.toContainText('호텔 픽업');
-  await expect(page.locator('.destination-marker')).toHaveCount(3);
-  await expect(page.locator('.map-destinations li')).toHaveCount(3);
+  await expect(page.locator('.destination-marker')).toHaveCount(4);
+  await expect(page.locator('.map-destinations li')).toHaveCount(4);
   await expect(page.locator('.map-destinations')).toContainText('돌 플랜테이션');
   await expect(page.locator('.map-destinations')).toContainText('와이켈레 아울렛');
   await expect(page.locator('.map-destinations')).not.toContainText('모자섬');
   await expect(page.locator('.map-destinations')).not.toContainText('선셋비치');
-  await expect(page.locator('.route-card .mode-label')).toHaveText('차량');
-  await expect(page.locator('.route-card')).toContainText('당일 렌트 계획');
+  await expect(page.locator('.route-card .mode-label')).toHaveText(['도보', '차량']);
+  await expect(page.locator('.route-card')).toContainText('다음 날 반납');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.day-map-panel').screenshot({ path: `test-results/${testInfo.project.name}-oahu-22-map.png` });
 
@@ -269,17 +269,18 @@ test('Oahu dates show the replacement itinerary and matching main map routes', a
   await expect(page).toHaveURL(/#view=daily&date=2026-12-23$/);
   await expect(page.locator('.timeline > li').first()).toContainText('07:15 전후 · 출발 목표');
   await expect(page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '하나우마베이 스노클링', exact: true }) })).toContainText('08:00 전후 · 입장 목표');
+  await expect(page.locator('.timeline > li').filter({ hasText: '와이키키 Hertz 렌터카 반납' })).toContainText('13:00 · 예약');
   const snap = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '커플 선셋 스냅 · 카라이 픽업', exact: true }) });
   await expect(snap).toContainText('16:45 · 픽업 예약');
   await snap.locator('summary').click();
   await expect(snap.locator('details')).toContainText('실제 촬영 시작 시각은 작가 안내 확인');
   await expect(page.getByRole('heading', { name: '할로나 블로우홀 또는 샌디비치 한 곳', exact: true })).toHaveCount(1);
-  await expect(page.locator('.destination-marker')).toHaveCount(3);
-  await expect(page.locator('.map-destinations li')).toHaveCount(3);
+  await expect(page.locator('.destination-marker')).toHaveCount(4);
+  await expect(page.locator('.map-destinations li')).toHaveCount(4);
   await expect(page.locator('.map-destinations')).not.toContainText('할로나');
   await expect(page.locator('.map-destinations')).not.toContainText('샌디');
   await expect(page.locator('.map-destinations')).toContainText('카카아코 워터프런트파크');
-  await expect(page.locator('.route-card .mode-label')).toHaveText(['교통편 미정', '차량']);
+  await expect(page.locator('.route-card .mode-label')).toHaveText(['차량', '도보', '차량']);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.day-map-panel').screenshot({ path: `test-results/${testInfo.project.name}-oahu-23-map.png` });
 
@@ -315,17 +316,17 @@ test('Oahu transport summary and pending tasks match while legacy tour checks ar
   await page.addInitScript(value => localStorage.setItem('hawaii-honeymoon.checklist.v1', value), stored);
   await page.goto('./#view=prepare&date=2026-12-22');
   await expect(page.getByLabel('오아후 조인 투어 예약 확인', { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('12/22 와이키키 당일 렌터카', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('오아후 Hertz 렌터카 예약', { exact: true })).toBeChecked();
   await expect(page.getByLabel('12/24 다이아몬드헤드 입장권 2인', { exact: true })).not.toBeChecked();
-  await expect(page.getByLabel('하나우마베이 입장·왕복 교통편 예약', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('하나우마베이 입장권 2인 예약', { exact: true })).toBeChecked();
   await expect(page.getByLabel('커플 스냅 예약', { exact: true })).toBeChecked();
   expect(await page.evaluate(() => localStorage.getItem('hawaii-honeymoon.checklist.v1'))).toBe(stored);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('nav a').filter({ hasText: '숙소·항공' }).click();
   const transport = page.locator('.transport-list');
   await expect(transport).toContainText('12/21·25 공항 한인택시 계획');
-  await expect(transport).toContainText('12/22 와이키키 당일 렌트');
-  await expect(transport).toContainText('12/23 하나우마베이 왕복 교통 미확정');
+  await expect(transport).toContainText('12/22 09:00 인수 → 12/23 13:00 반납');
+  await expect(transport).toContainText('예약 총액 US$101.60');
   await expect(transport).toContainText('12/24 등산 택시 왕복 계획');
   await expect(transport).not.toContainText('조인 투어');
 });
@@ -375,7 +376,7 @@ test('confirmed sunset pickup, photo route and pending entry reservations are vi
   }
   await expect(snap.getByRole('link', { name: /카카아코/ })).toHaveAttribute('href', /maps\/search/);
   await expect(snap.getByRole('link', { name: /일몰 참고/ })).toHaveAttribute('href', 'https://www.timeanddate.com/sun/usa/honolulu?month=12&year=2026');
-  await expect(page.locator('.map-destinations li')).toHaveCount(3);
+  await expect(page.locator('.map-destinations li')).toHaveCount(4);
   await expect(page.locator('.route-card')).toContainText('카카아코');
   await expect(page.locator('.timeline')).not.toContainText('17:20');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

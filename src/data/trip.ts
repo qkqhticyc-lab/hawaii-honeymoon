@@ -24,6 +24,7 @@ export const places = {
   volcano: { name: '하와이 화산국립공원', query: 'Hawaii Volcanoes National Park' },
   lava: { name: '용암동굴', note: '방문할 동굴·개방 여부 확인 필요.' },
   waikiki: { name: '와이키키', query: 'Waikiki Honolulu' },
+  oahuHertz: { name: 'Hertz · 하얏트 리젠시 와이키키', query: 'Hertz 2424 Kalakaua Ave Honolulu HI 96815', note: '인수·반납 모두 같은 지점. 실제 주차장 입구는 지점 안내 확인.' },
   diamond: { name: '다이아몬드헤드 비치 전망대', query: 'Diamond Head Beach Lookout Honolulu' },
   diamondPark: { name: '다이아몬드헤드 공원 입구·트레일헤드', query: 'Diamond Head State Monument', note: '정상 등산 출발 지점. 정확한 입구·트레일헤드 좌표와 실제 승하차 지점은 확인 필요.' },
   kahala: { name: '카할라 주택가', query: 'Kahala Honolulu' },
@@ -66,10 +67,18 @@ const konaRental = {
   doors: '예약 표기 2도어/4도어 · 실제 배정 미확정',
 };
 const konaRentalMap = { label: 'KOA Hertz 영업소 지도', url: 'https://www.google.com/maps/search/?api=1&query=Hertz+73-104+Aulepe+Street+Kailua-Kona+HI+96740' };
+const oahuRental = {
+  vehicle: 'Ford Mustang Convertible · Medium Convertible (U0)',
+  detail: '12/22 09:00 인수 → 12/23 13:00 반납 · 하와이 현지시간',
+  office: '인수·반납: 하얏트 리젠시 와이키키 비치 Hertz · 2424 Kalākaua Ave, Honolulu',
+  price: '예약 총액 US$101.60',
+  hours: '예약 안내 기준 지점 영업시간 매일 08:00~16:00',
+};
 export const transport = [
   { title: '마우이 · Hertz K5 또는 동급', status: '확정' as Status, detail: 'OGG 인수 12/12 14:00 → 반납 12/17 11:30 · D0 / SCAR', notes: ['과거 예약 확인 예상 총액 US$218.50 · 현장 후불 (실시간 판매가 아님)', '28인치 1개 + 26인치 1개 캐리어', '기존 더 비싼 예약의 중복 취소 여부 확인 필요'] },
   { title: `빅아일랜드 · ${konaRental.vehicle}`, status: '확정' as Status, detail: 'KOA Hertz 인수 12/17 15:00 → 같은 지점 반납 12/21 13:00 · 하와이 현지시간', notes: [konaRental.price, konaRental.office, konaRental.hours, konaRental.doors, '마우나케아 정상 구간 운행 허용과 보험·면책 범위는 별도 확인 필요'] },
-  { title: '오아후 · 공항택시·당일 렌트·등산 택시', status: '계획' as Status, detail: '12/21·25 공항 한인택시 계획 / 12/22 와이키키 당일 렌트 / 12/23 하나우마베이 왕복 교통 미확정 / 12/24 등산 택시 왕복 계획', notes: ['공항 한인택시 예약 미확정', '12/22 렌터카 지점·영업시간·예약·반납 마감 확인 필요. 당일 인수·반납 목표는 실제 영업시간과 다를 수 있습니다.', '12/23 추가 렌터카 대여는 기본 계획에 포함하지 않습니다.', '12/24 택시 또는 차량 호출로 공원 왕복 계획 · 입장권 2인 미예약', '12/25 픽업 10:00~10:15경 검토, HNL 11:00 전후 도착 목표'] },
+  { title: '오아후 · 공항택시·등산 택시', status: '계획' as Status, detail: '12/21·25 공항 한인택시 계획 / 12/24 등산 택시 왕복 계획', notes: ['공항 한인택시 예약 미확정', '12/24 택시 또는 차량 호출로 공원 왕복 계획 · 입장권 2인 미예약', '12/25 픽업 10:00~10:15경 검토, HNL 11:00 전후 도착 목표'] },
+  { title: `오아후 · Hertz ${oahuRental.vehicle}`, status: '확정' as Status, detail: oahuRental.detail, notes: [oahuRental.office, oahuRental.price, oahuRental.hours, '12/22 카라이 야간 주차 위치·비용 확인. 12/23 하나우마베이 방문 후 반납 계획.'] },
 ];
 export type ReferenceLink = { label: string; url: string };
 const calypsoLink: ReferenceLink = { label: '칼립소 공식 집결지·지도 안내', url: 'https://calypsomaui.com/cruises/molokini-crater-snorkeling-tour/' };
@@ -88,7 +97,8 @@ const photoNotes = [
   '상품 안내 기준 카카아코 워터프런트파크 · 이동 포함 약 90분. 현장 결제 US$320 · 작가 팁 별도.',
   '12/23 호놀룰루 일몰 약 17:55는 참고 시각. 종료 시각과 복귀 교통은 작가와 확인.',
 ];
-const hanaumaNote = '12/23 입장권 2인·왕복 교통편 미확정. 예약 오픈 하와이 12/21 07:00 = 한국 12/22 02:00. 08:00 전후 입장은 목표이며 실제 예약 슬롯에 따라 조정합니다.';
+const hanaumaNote = '12/23 입장권 2인 미예약. 예약 오픈 하와이 12/21 07:00 = 한국 12/22 02:00. 08:00 전후 입장은 목표이며 실제 예약 슬롯에 따라 조정합니다. 입장 예약에 주차 자리는 포함되지 않습니다.';
+const oahuHertzLink: ReferenceLink = { label: 'Hertz 와이키키 지점 안내', url: 'https://www.hertz.com/us/en/location/unitedstates/hawaii/honolulu/hnlc10' };
 const diamondHeadNote = '12/24 등산용 입장권 2인 미예약. 방문 30일 전인 하와이 11/24부터 예약 화면 확인. 정확한 오픈 시각은 확인 필요. 08:00~10:00는 목표이며 실제 예약 슬롯에 따라 조정합니다.';
 export type Event = { time: string; title: string; place: PlaceId; status: Status; notes: string[]; links?: ReferenceLink[]; milestone?: string; flightId?: string; kind?: '예비' };
 export type Route = { mode: '도보' | '차량' | '비행기' | '투어 차량' | '한인택시' | '보트' | '교통편 미정'; stops: PlaceId[]; note?: string };
@@ -174,25 +184,27 @@ export const days: Day[] = [
       e('18:00~19:00 · 도착 예상', '카라이 도착 · 체크인', 'kalai', '확정', ['숙박 예약은 확정이며 도착 시각은 예상입니다. 예약 당시 체크인 16:00 안내. 공항에서 이동한 후 체크인.']),
       e('저녁 · 계획', '간단한 장보기 · 식사', 'kalai'),
     ], routes: [{ mode: '차량', stops: ['kona', 'koa'] }, { mode: '비행기', stops: ['koa', 'hnl'] }, { mode: '한인택시', stops: ['hnl', 'kalai'] }] },
-  { date: '2026-12-22', island: '오아후', title: '하루 렌트, 파인애플과 쇼핑', intro: '와이키키에서 당일 렌트해 돌 플랜테이션과 와이켈레 아울렛을 다녀와요.', events: [
-      e('08:30~09:00 · 목표', '와이키키 시내 렌터카 인수', 'waikiki', '계획', ['인수 지점·영업시간·예약은 미확정. 실제 인수 가능한 시간과 반납 마감 확인 필요.']),
+  { date: '2026-12-22', island: '오아후', title: '머스탱으로, 파인애플과 쇼핑', intro: '09:00 와이키키 Hertz에서 차를 받아 돌 플랜테이션과 와이켈레 아울렛을 다녀와요. 반납은 다음 날이에요.', events: [
+      e('09:00 · 예약', '와이키키 Hertz 렌터카 인수', 'oahuHertz', '확정', [oahuRental.vehicle, oahuRental.office, oahuRental.price, oahuRental.hours], { links: [oahuHertzLink] }),
       e('10:00~11:45 · 목표', '돌 플랜테이션', 'dole', '계획', ['운영시간·방문 조건 확인 필요. 파인애플 열차는 현장 상황에 따라 선택합니다. 목표 시간대를 영업시간으로 해석하지 않습니다.']),
       e('12:15~15:30 · 목표', '와이켈레 프리미엄 아울렛 · 점심·쇼핑', 'outlet', '계획', ['운영시간 확인 필요. 점심과 쇼핑을 함께 계획합니다.']),
       e('15:45 전후 · 출발 목표', '아울렛에서 출발', 'outlet'),
-      e('16:45~17:15 · 목표', '와이키키 복귀 · 주유 · 차량 반납', 'waikiki', '계획', ['실제 반납 마감에 맞춰 복귀를 앞당길 수 있습니다. 렌터카 지점·영업시간·예약은 미확정입니다.']),
+      e('16:45~17:15 · 복귀 목표', '카라이 복귀 · 야간 주차', 'kalai', '계획', ['호텔 주차 위치와 1박 요금 확인. 렌터카 반납은 12/23 13:00 예약.']),
       e('저녁 · 계획', '식사 · 휴식', 'kalai'),
-    ], routes: [{ mode: '차량', stops: ['kalai', 'dole', 'outlet', 'kalai'], note: '당일 렌트 계획' }] },
-  { date: '2026-12-23', island: '오아후', title: '하나우마베이와 석양의 우리', intro: '하나우마베이 왕복 후 샤워·휴식·촬영 준비. 오후 16:45 카라이에서 커플 선셋 스냅 픽업이 확정됐어요.', events: [
-      e('07:15 전후 · 출발 목표', '카라이에서 출발', 'kalai', '계획', ['왕복 교통편 미확정. 실제 입장 슬롯과 이동편에 따라 출발 시각을 조정합니다. 추가 렌터카 대여는 기본 계획에 포함하지 않습니다.']),
+    ], routes: [{ mode: '도보', stops: ['kalai', 'oahuHertz'], note: '09:00 렌터카 인수' }, { mode: '차량', stops: ['oahuHertz', 'dole', 'outlet', 'kalai'], note: '렌터카로 방문 후 카라이 복귀 · 다음 날 반납' }] },
+  { date: '2026-12-23', island: '오아후', title: '하나우마베이와 석양의 우리', intro: '오전에 렌터카로 하나우마베이를 다녀온 뒤 13:00 Hertz 반납. 16:45 카라이에서 커플 선셋 스냅 픽업이에요.', events: [
+      e('07:15 전후 · 출발 목표', '카라이에서 렌터카로 출발', 'kalai', '계획', ['입장 슬롯과 주차 상황에 맞춰 출발 시각 조정.']),
       e('08:00 전후 · 입장 목표', '하나우마베이 스노클링', 'hanauma', '계획', [hanaumaNote], { links: [hanaumaLink] }),
       e('11:15 전후 · 출발 목표', '하나우마베이에서 출발', 'hanauma'),
-      e('복귀 중 · 당일 선택', '할로나 블로우홀 또는 샌디비치 한 곳', 'halona', '선택', ['복귀 차량에 경유가 가능하고 스냅 준비 시간을 침범하지 않을 때 한 곳만 선택합니다. 기본 지도 동선에는 포함하지 않습니다.']),
-      e('12:00~12:30 · 호텔 복귀 목표', '카라이 복귀', 'kalai'),
-      e('13:00~16:15 · 계획', '점심 · 샤워 · 휴식 · 촬영 준비', 'kalai'),
+      e('복귀 중 · 당일 선택', '할로나 블로우홀 또는 샌디비치 한 곳', 'halona', '선택', ['13:00 차량 반납에 여유가 있을 때만 한 곳 선택. 기본 지도 동선에는 포함하지 않습니다.']),
+      e('12:30 전후 · 지점 도착 목표', '주유 후 Hertz 지점 이동', 'oahuHertz', '계획', ['주유는 렌터카 계약 조건에 맞춰 진행.']),
+      e('13:00 · 예약', '와이키키 Hertz 렌터카 반납', 'oahuHertz', '확정', [oahuRental.office, '반납 후 카라이로 도보 복귀 계획.'], { links: [oahuHertzLink] }),
+      e('반납 후~16:15 · 계획', '카라이 복귀 · 점심 · 샤워 · 촬영 준비', 'kalai'),
       e(photoPickup, '커플 선셋 스냅 · 카라이 픽업', 'kalai', '확정', photoNotes, { links: photoLinks, milestone: '알로하 선셋 A · 커플 스냅' }),
       e('저녁 · 계획', '저녁 식사', 'kalai'),
     ], routes: [
-      { mode: '교통편 미정', stops: ['kalai', 'hanauma', 'kalai'], note: '하나우마베이 왕복 교통편 미확정.' },
+      { mode: '차량', stops: ['kalai', 'hanauma', 'oahuHertz'], note: '하나우마베이 렌터카 이동 계획 · 13:00 Hertz 반납 예약' },
+      { mode: '도보', stops: ['oahuHertz', 'kalai'], note: '차량 반납 후 호텔 복귀' },
       { mode: '차량', stops: ['kalai', 'photo'], note: '16:45 카라이에서 스튜디오 픽업 · 촬영지는 상품 안내 기준 · 복귀 교통은 작가에게 확인' },
     ] },
   { date: '2026-12-24', island: '오아후', title: '정상에서 시작하는 크리스마스이브', intro: '오전 다이아몬드헤드 정상 등산을 계획하고, 충분히 쉰 뒤 오키즈에서 저녁을 함께해요.', events: [
@@ -219,9 +231,9 @@ export const tasks: Task[] = [
   t('molokini', '몰로키니 예약', '15', 'calypsoSlip', true, '칼립소호 몰로키니 & 터틀타운 스노클링 · 성인 2인 확정. 06:45까지 Slip 76 앞 체크인, 07:30 출항. 무료 취소 마감 하와이 12/14 07:30 전 = 한국 12/15 02:30 전.', [calypsoLink]),
   t('jeep', '빅아일랜드 렌터카 예약 완료', '17', 'koa', true, `${konaRental.vehicle} · 12/17 15:00 인수 → 12/21 13:00 반납 (하와이 현지시간, 모두 KOA Hertz). ${konaRental.price}.`, [konaRentalMap]),
   t('maunakea', '마우나케아 차량·도로·보험 조건 확인', '18', 'summit'),
-  t('oahu-day-rental', '12/22 와이키키 당일 렌터카', '22', 'waikiki', false, '인수 지점·영업시간·예약·반납 마감 확인 필요. 08:30~09:00 인수, 16:45~17:15 반납은 목표 시간입니다.'),
+  t('oahu-day-rental', '오아후 Hertz 렌터카 예약', '22', 'oahuHertz', true, `${oahuRental.detail}. ${oahuRental.price}. 카라이 야간 주차 위치·비용 확인.`, [oahuHertzLink]),
   t('diamond-head-entry', '12/24 다이아몬드헤드 입장권 2인', '24', 'diamondPark', false, diamondHeadNote, [diamondHeadLink]),
-  t('hanauma', '하나우마베이 입장·왕복 교통편 예약', '23', 'hanauma', false, hanaumaNote, [hanaumaLink]),
+  t('hanauma', '하나우마베이 입장권 2인 예약', '23', 'hanauma', false, hanaumaNote, [hanaumaLink]),
   t('photo', '커플 스냅 예약', '23', 'kalai', true, photoNotes.join(' '), photoLinks),
   t('diamond', '힐튼 다이아 확보·계정 반영 확인', '12', 'grand', true, '패스트트랙으로 Hilton Honors Diamond 획득, 앱 반영 확인.'),
   t('email', '그랜드 와일레아 허니문·객실 선호 메일', '12', 'grand', true, '메일 발송 완료, 호텔 회신·객실 업그레이드는 미확인. 훌라 문의는 포함하지 않았습니다. 마지막 확인 12/5~8은 추천 계획입니다.'),
