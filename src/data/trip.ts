@@ -37,7 +37,7 @@ export const places = {
   dole: { name: '돌 플랜테이션', query: 'Dole Plantation Oahu' },
   outlet: { name: '와이켈레 아울렛', query: 'Waikele Premium Outlets' },
   hanauma: { name: '하나우마베이', query: 'Hanauma Bay Oahu' },
-  photo: { name: '커플 스냅 촬영 장소', note: '장소·작가·촬영 시각 미확정.' },
+  photo: { name: '카카아코 워터프런트파크', query: 'Kakaako Waterfront Park Honolulu', note: '알로하 선셋 A 상품 안내상의 촬영지 · 실제 촬영 구역은 작가 안내 확인.' },
   orchids: { name: '할레쿨라니 오키즈', query: 'Orchids Halekulani Honolulu' },
 } satisfies Record<string, Place>;
 export type PlaceId = keyof typeof places;
@@ -77,15 +77,16 @@ const hanaumaLink: ReferenceLink = { label: '하나우마베이 공식 예약', 
 const diamondHeadLink: ReferenceLink = { label: '다이아몬드헤드 공식 예약 안내', url: 'https://gostateparks.hawaii.gov/diamondhead/about' };
 const sunsetLink: ReferenceLink = { label: '호놀룰루 2026년 12월 일몰 참고', url: 'https://www.timeanddate.com/sun/usa/honolulu?month=12&year=2026' };
 const photoLinks: ReferenceLink[] = [
-  { label: '검토 중인 카카아코 워터프런트파크 지도 검색', url: 'https://www.google.com/maps/search/?api=1&query=Kakaako%20Waterfront%20Park%20Honolulu' },
+  { label: '카카아코 워터프런트파크 지도 검색', url: 'https://www.google.com/maps/search/?api=1&query=Kakaako%20Waterfront%20Park%20Honolulu' },
   sunsetLink,
 ];
+const photoPickup = '16:45 · 픽업 예약';
+const photoBooking = '와이키키스튜디오 알로하 선셋 A · 2인 확정';
 const photoNotes = [
-  '미예약 · 선셋 시간대 촬영 계획. 촬영 장소와 시작 시각 미확정. 와이키키 근거리 촬영은 대안입니다.',
-  '검토 중인 후보 · 와이키키스튜디오 알로하 선셋 A, 2인 단독. 카카아코 워터프런트파크, 이동 포함 90분.',
-  '후보 상품 안내 기준 마케팅 동의 이벤트가 · 예약금 10만원 + 현장 $320.',
-  '예약 여부·담당 작가·카메라·렌즈·픽업·복귀·실제 촬영 시간·마케팅 사용 범위 및 미동의 요금 확인 필요.',
-  '12/23 호놀룰루 일몰 약 17:55는 참고 정보입니다. 작가와 합의한 실제 촬영 시각은 미확정입니다.',
+  `${photoBooking}. 하와이 현지시간 16:45 카라이 LXR 픽업 · 실제 촬영 시작 시각은 작가 안내 확인.`,
+  '작가가 전날 카카오톡으로 연락 예정. 교통 상황에 따라 픽업 차량이 5~10분 늦을 수 있습니다.',
+  '상품 안내 기준 카카아코 워터프런트파크 · 이동 포함 약 90분. 현장 결제 US$320 · 작가 팁 별도.',
+  '12/23 호놀룰루 일몰 약 17:55는 참고 시각. 종료 시각과 복귀 교통은 작가와 확인.',
 ];
 const hanaumaNote = '12/23 입장권 2인·왕복 교통편 미확정. 예약 오픈 하와이 12/21 07:00 = 한국 12/22 02:00. 08:00 전후 입장은 목표이며 실제 예약 슬롯에 따라 조정합니다.';
 const diamondHeadNote = '12/24 등산용 입장권 2인 미예약. 방문 30일 전인 하와이 11/24부터 예약 화면 확인. 정확한 오픈 시각은 확인 필요. 08:00~10:00는 목표이며 실제 예약 슬롯에 따라 조정합니다.';
@@ -181,16 +182,19 @@ export const days: Day[] = [
       e('16:45~17:15 · 목표', '와이키키 복귀 · 주유 · 차량 반납', 'waikiki', '계획', ['실제 반납 마감에 맞춰 복귀를 앞당길 수 있습니다. 렌터카 지점·영업시간·예약은 미확정입니다.']),
       e('저녁 · 계획', '식사 · 휴식', 'kalai'),
     ], routes: [{ mode: '차량', stops: ['kalai', 'dole', 'outlet', 'kalai'], note: '당일 렌트 계획' }] },
-  { date: '2026-12-23', island: '오아후', title: '하나우마베이와 석양의 우리', intro: '하나우마베이 왕복 후 샤워·휴식·촬영 준비. 선셋 스냅은 미예약이며 장소와 시작 시각을 검토 중이에요.', events: [
+  { date: '2026-12-23', island: '오아후', title: '하나우마베이와 석양의 우리', intro: '하나우마베이 왕복 후 샤워·휴식·촬영 준비. 오후 16:45 카라이에서 커플 선셋 스냅 픽업이 확정됐어요.', events: [
       e('07:15 전후 · 출발 목표', '카라이에서 출발', 'kalai', '계획', ['왕복 교통편 미확정. 실제 입장 슬롯과 이동편에 따라 출발 시각을 조정합니다. 추가 렌터카 대여는 기본 계획에 포함하지 않습니다.']),
       e('08:00 전후 · 입장 목표', '하나우마베이 스노클링', 'hanauma', '계획', [hanaumaNote], { links: [hanaumaLink] }),
       e('11:15 전후 · 출발 목표', '하나우마베이에서 출발', 'hanauma'),
       e('복귀 중 · 당일 선택', '할로나 블로우홀 또는 샌디비치 한 곳', 'halona', '선택', ['복귀 차량에 경유가 가능하고 스냅 준비 시간을 침범하지 않을 때 한 곳만 선택합니다. 기본 지도 동선에는 포함하지 않습니다.']),
       e('12:00~12:30 · 호텔 복귀 목표', '카라이 복귀', 'kalai'),
       e('13:00~16:15 · 계획', '점심 · 샤워 · 휴식 · 촬영 준비', 'kalai'),
-      e('선셋 시간대 · 촬영 장소와 시작 시각 미확정', '커플 스냅 촬영 · 미예약', 'photo', '계획', photoNotes, { links: photoLinks }),
+      e(photoPickup, '커플 선셋 스냅 · 카라이 픽업', 'kalai', '확정', photoNotes, { links: photoLinks, milestone: '알로하 선셋 A · 커플 스냅' }),
       e('저녁 · 계획', '저녁 식사', 'kalai'),
-    ], routes: [{ mode: '교통편 미정', stops: ['kalai', 'hanauma', 'kalai'], note: '하나우마베이 왕복 교통편 미확정. 촬영 장소는 확정 후 별도 안내.' }] },
+    ], routes: [
+      { mode: '교통편 미정', stops: ['kalai', 'hanauma', 'kalai'], note: '하나우마베이 왕복 교통편 미확정.' },
+      { mode: '차량', stops: ['kalai', 'photo'], note: '16:45 카라이에서 스튜디오 픽업 · 촬영지는 상품 안내 기준 · 복귀 교통은 작가에게 확인' },
+    ] },
   { date: '2026-12-24', island: '오아후', title: '정상에서 시작하는 크리스마스이브', intro: '오전 다이아몬드헤드 정상 등산을 계획하고, 충분히 쉰 뒤 오키즈에서 저녁을 함께해요.', events: [
       e('07:30 전후 · 출발 목표', '카라이에서 택시 또는 차량 호출로 출발', 'kalai'),
       e('08:00~10:00 · 목표', 'Diamond Head State Monument 입장 · 정상 등산', 'diamondPark', '계획', [diamondHeadNote, '운영시간·입장 조건·정확한 입구·트레일헤드 좌표와 승하차 지점 확인 필요.'], { links: [diamondHeadLink] }),
@@ -218,7 +222,7 @@ export const tasks: Task[] = [
   t('oahu-day-rental', '12/22 와이키키 당일 렌터카', '22', 'waikiki', false, '인수 지점·영업시간·예약·반납 마감 확인 필요. 08:30~09:00 인수, 16:45~17:15 반납은 목표 시간입니다.'),
   t('diamond-head-entry', '12/24 다이아몬드헤드 입장권 2인', '24', 'diamondPark', false, diamondHeadNote, [diamondHeadLink]),
   t('hanauma', '하나우마베이 입장·왕복 교통편 예약', '23', 'hanauma', false, hanaumaNote, [hanaumaLink]),
-  t('photo', '커플 스냅 예약', '23', 'photo', false, photoNotes.join(' '), photoLinks),
+  t('photo', '커플 스냅 예약', '23', 'kalai', true, photoNotes.join(' '), photoLinks),
   t('diamond', '힐튼 다이아 확보·계정 반영 확인', '12', 'grand', true, '패스트트랙으로 Hilton Honors Diamond 획득, 앱 반영 확인.'),
   t('email', '그랜드 와일레아 허니문·객실 선호 메일', '12', 'grand', true, '메일 발송 완료, 호텔 회신·객실 업그레이드는 미확인. 훌라 문의는 포함하지 않았습니다. 마지막 확인 12/5~8은 추천 계획입니다.'),
   t('email-kalai', '카라이 허니문·객실 선호 메일', '21', 'kalai', false, '사전 요청 11/23~30, 마지막 확인 12/14~17은 추천 계획이며 발송 완료로 확인되지 않았습니다.'),

@@ -269,17 +269,17 @@ test('Oahu dates show the replacement itinerary and matching main map routes', a
   await expect(page).toHaveURL(/#view=daily&date=2026-12-23$/);
   await expect(page.locator('.timeline > li').first()).toContainText('07:15 전후 · 출발 목표');
   await expect(page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '하나우마베이 스노클링', exact: true }) })).toContainText('08:00 전후 · 입장 목표');
-  const snap = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '커플 스냅 촬영 · 미예약', exact: true }) });
-  await expect(snap).toContainText('선셋 시간대 · 촬영 장소와 시작 시각 미확정');
+  const snap = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '커플 선셋 스냅 · 카라이 픽업', exact: true }) });
+  await expect(snap).toContainText('16:45 · 픽업 예약');
   await snap.locator('summary').click();
-  await expect(snap.locator('details')).toContainText('작가와 합의한 실제 촬영 시각은 미확정');
+  await expect(snap.locator('details')).toContainText('실제 촬영 시작 시각은 작가 안내 확인');
   await expect(page.getByRole('heading', { name: '할로나 블로우홀 또는 샌디비치 한 곳', exact: true })).toHaveCount(1);
-  await expect(page.locator('.destination-marker')).toHaveCount(2);
-  await expect(page.locator('.map-destinations li')).toHaveCount(2);
+  await expect(page.locator('.destination-marker')).toHaveCount(3);
+  await expect(page.locator('.map-destinations li')).toHaveCount(3);
   await expect(page.locator('.map-destinations')).not.toContainText('할로나');
   await expect(page.locator('.map-destinations')).not.toContainText('샌디');
-  await expect(page.locator('.map-destinations')).not.toContainText('스냅');
-  await expect(page.locator('.route-card .mode-label')).toHaveText('교통편 미정');
+  await expect(page.locator('.map-destinations')).toContainText('카카아코 워터프런트파크');
+  await expect(page.locator('.route-card .mode-label')).toHaveText(['교통편 미정', '차량']);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.day-map-panel').screenshot({ path: `test-results/${testInfo.project.name}-oahu-23-map.png` });
 
@@ -364,27 +364,27 @@ test('Calypso dock map and confirmed departure match the default task and overvi
   }
 });
 
-test('unbooked sunset candidate, source links and booking windows are visible without a photo route', async ({ page }, testInfo) => {
+test('confirmed sunset pickup, photo route and pending entry reservations are visible', async ({ page }, testInfo) => {
   await page.goto('./#view=daily&date=2026-12-23');
-  const snap = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '커플 스냅 촬영 · 미예약', exact: true }) });
-  await expect(snap).toContainText('선셋 시간대 · 촬영 장소와 시작 시각 미확정');
-  await expect(snap.locator('.badge')).toHaveText('계획');
+  const snap = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: '커플 선셋 스냅 · 카라이 픽업', exact: true }) });
+  await expect(snap).toContainText('16:45 · 픽업 예약');
+  await expect(snap.locator('.badge')).toHaveText('확정');
   await snap.locator('summary').click();
-  for (const phrase of ['검토 중', '알로하 선셋 A', '마케팅 동의 이벤트가', '예약금 10만원 + 현장 $320', '미동의 요금', '17:55', '와이키키 근거리 촬영은 대안']) {
+  for (const phrase of ['알로하 선셋 A', '2인 확정', '5~10분', '현장 결제 US$320', '17:55', '실제 촬영 시작 시각은 작가 안내 확인']) {
     await expect(snap.locator('details')).toContainText(phrase);
   }
   await expect(snap.getByRole('link', { name: /카카아코/ })).toHaveAttribute('href', /maps\/search/);
   await expect(snap.getByRole('link', { name: /일몰 참고/ })).toHaveAttribute('href', 'https://www.timeanddate.com/sun/usa/honolulu?month=12&year=2026');
-  await expect(page.locator('.map-destinations li')).toHaveCount(2);
-  await expect(page.locator('.route-card')).not.toContainText('카카아코');
+  await expect(page.locator('.map-destinations li')).toHaveCount(3);
+  await expect(page.locator('.route-card')).toContainText('카카아코');
   await expect(page.locator('.timeline')).not.toContainText('17:20');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: `test-results/${testInfo.project.name}-unbooked-sunset.png`, fullPage: true });
+  await page.screenshot({ path: `test-results/${testInfo.project.name}-confirmed-sunset.png`, fullPage: true });
   await page.goto('./#view=prepare&date=2026-12-23');
-  await expect(page.locator('#task-photo')).not.toBeChecked();
+  await expect(page.locator('#task-photo')).toBeChecked();
   await expect(page.locator('#task-hanauma')).not.toBeChecked();
   await expect(page.locator('#task-diamond-head-entry')).not.toBeChecked();
-  await expect(page.locator('#task-photo').locator('..')).toContainText('촬영 장소와 시작 시각 미확정');
+  await expect(page.locator('#task-photo').locator('..')).toContainText('16:45 카라이 LXR 픽업');
   await expect(page.locator('#task-hanauma').locator('..')).toContainText('하와이 12/21 07:00 = 한국 12/22 02:00');
   await expect(page.locator('#task-hanauma').locator('..').getByRole('link', { name: /공식 예약/ })).toHaveAttribute('href', 'https://pros.hnl.info/hanauma-bay');
   await expect(page.locator('#task-diamond-head-entry').locator('..')).toContainText('하와이 11/24부터');

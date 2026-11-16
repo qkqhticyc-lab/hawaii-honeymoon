@@ -38,12 +38,12 @@ test('flight instants preserve actual chronology and supplied durations', () => 
   assert.equal((Date.parse(flights[1].departure) - Date.parse(flights[0].arrival)) / 60000, 147);
 });
 test('planning remains planning; only known reservations are confirmed', () => {
-  for (const [date, title] of [['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-22', '와이키키 시내 렌터카 인수'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-23', '커플 스냅 촬영 · 미예약'], ['2026-12-24', 'Diamond Head State Monument 입장 · 정상 등산']]) {
+  for (const [date, title] of [['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-22', '와이키키 시내 렌터카 인수'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-24', 'Diamond Head State Monument 입장 · 정상 등산']]) {
     assert.equal(days.find(d => d.date === date)!.events.find(e => e.title === title)!.status, '계획');
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
-  assert.equal(tasks.filter(t => t.done).length, 8);
+  assert.equal(tasks.filter(t => t.done).length, 9);
   assert.equal(tasks.length, 25);
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
@@ -121,7 +121,7 @@ test('map references have sources and never invent accommodation or meeting poin
     assert.match(location.source, /^https:\/\//);
     assert.ok(location.label.length > 0);
   }
-  for (const id of ['kona', 'stars', 'photo', 'coffee', 'village', 'macadamia', 'lunch'] as const) assert.equal(mapLocations[id], undefined);
+  for (const id of ['kona', 'stars', 'coffee', 'village', 'macadamia', 'lunch'] as const) assert.equal(mapLocations[id], undefined);
   assert.ok(Math.abs(coordinate('icn')![1] - coordinate('hnl')![1]) < 90);
 });
 
@@ -139,14 +139,14 @@ test('Oahu main routes match day rental, Hanauma return and separate hiking/dinn
   const dec23 = days.find(d => d.date === '2026-12-23')!;
   const dec24 = days.find(d => d.date === '2026-12-24')!;
   assert.deepEqual(dec22.routes, [{ mode: '차량', stops: ['kalai', 'dole', 'outlet', 'kalai'], note: '당일 렌트 계획' }]);
-  assert.deepEqual(dec23.routes.map(r => [r.mode, r.stops]), [['교통편 미정', ['kalai', 'hanauma', 'kalai']]]);
+  assert.deepEqual(dec23.routes.map(r => [r.mode, r.stops]), [['교통편 미정', ['kalai', 'hanauma', 'kalai']], ['차량', ['kalai', 'photo']]]);
   assert.deepEqual(dec24.routes.map(r => [r.mode, r.stops]), [
     ['차량', ['kalai', 'diamondPark', 'kalai']], ['도보', ['kalai', 'orchids', 'kalai']],
   ]);
   assert.equal(places.diamondPark.query, 'Diamond Head State Monument');
   assert.match(places.diamond.name, /비치 전망대/);
   assert.equal(mapLocations.diamondPark, undefined);
-  assert.equal(mapLocations.photo, undefined);
+  assert.deepEqual(mapSegments([dec23.routes[1]]).map(s => [s.from, s.to]), [['kalai', 'photo']]);
   assert.deepEqual(mapSegments([dec24.routes[0]]), []);
   assert.equal(mapSegments([dec24.routes[1]]).length, 2);
   for (const id of ['diamond', 'kahala', 'village', 'macadamia', 'chinaman', 'sunset'] as const) {
@@ -156,14 +156,14 @@ test('Oahu main routes match day rental, Hanauma return and separate hiking/dinn
   const detours = dec23.events.filter(e => e.status === '선택');
   assert.equal(detours.length, 1);
   assert.match(detours[0].title, /할로나 블로우홀 또는 샌디비치 한 곳/);
-  assert.match(dec23.events.find(e => e.place === 'photo')!.notes.join(' '), /작가와 합의한 실제 촬영 시각은 미확정/);
+  assert.match(dec23.events.find(e => e.title.includes('커플 선셋 스냅'))!.notes.join(' '), /실제 촬영 시작 시각은 작가 안내 확인/);
   assert.equal(dec24.events.find(e => e.place === 'orchids')!.time, '16:45 · 예약');
   assert.equal(dec24.events.find(e => e.place === 'orchids')!.status, '확정');
 });
 
 test('retired tour task is inactive while old browser records and new pending reservations coexist', () => {
   assert.ok(!tasks.some(t => t.id === 'tour'));
-  for (const id of ['oahu-day-rental', 'diamond-head-entry', 'hanauma', 'photo']) assert.equal(tasks.find(t => t.id === id)!.done, false);
+  for (const id of ['oahu-day-rental', 'diamond-head-entry', 'hanauma']) assert.equal(tasks.find(t => t.id === id)!.done, false);
   const migrated = loadChecklist('{"tour":true,"hanauma":true,"photo":true,"bookings":false,"diamond":true}');
   assert.equal(migrated.hanauma, true);
   assert.equal(migrated.photo, true);
@@ -224,17 +224,17 @@ test('Calypso booking has a separate confirmed dock, land return route and indep
   assert.match(days.find(d => d.date === '2026-12-16')!.events.find(e => e.kind === '예비')!.notes.join(' '), /대체 예약은 확보되지 않았습니다/);
 });
 
-test('sunset candidate and booking reminders stay pending while milestones derive reservation times', () => {
+test('confirmed sunset pickup is distinct from shooting time and pending Oahu entries', () => {
   const day = days.find(d => d.date === '2026-12-23')!;
-  const snap = day.events.find(e => e.place === 'photo')!;
+  const snap = day.events.find(e => e.title.includes('커플 선셋 스냅'))!;
   const task = tasks.find(t => t.id === 'photo')!;
-  assert.equal(snap.time, '선셋 시간대 · 촬영 장소와 시작 시각 미확정');
-  assert.equal(snap.status, '계획');
-  assert.equal(task.done, false);
+  assert.deepEqual([snap.time, snap.status, snap.place], ['16:45 · 픽업 예약', '확정', 'kalai']);
+  assert.equal(task.done, true);
+  assert.equal(loadChecklist(null).photo, true);
   assert.equal(task.note, snap.notes.join(' '));
   assert.deepEqual(task.links, snap.links);
   assert.ok(!JSON.stringify(day).includes('17:20'));
-  for (const phrase of ['검토 중', '알로하 선셋 A', '이동 포함 90분', '예약금 10만원 + 현장 $320', '마케팅 사용 범위', '미동의 요금', '17:55']) {
+  for (const phrase of ['알로하 선셋 A', '2인 확정', '5~10분', '카카아코 워터프런트파크', '이동 포함 약 90분', '현장 결제 US$320', '17:55']) {
     assert.ok(task.note!.includes(phrase), phrase);
   }
   assert.match(tasks.find(t => t.id === 'hanauma')!.note!, /하와이 12\/21 07:00 = 한국 12\/22 02:00/);
@@ -243,7 +243,7 @@ test('sunset candidate and booking reminders stay pending while milestones deriv
     assert.equal(Date.parse(hawaii), Date.parse(korea));
   }
   assert.equal((Date.parse('2026-12-24T12:00:00-10:00') - Date.parse('2026-11-24T12:00:00-10:00')) / 86400000, 30);
-  assert.deepEqual(milestones.map(m => m.date), ['2026-12-12', '2026-12-14', '2026-12-15', '2026-12-17', '2026-12-21', '2026-12-24', '2026-12-25', '2026-12-26']);
+  assert.deepEqual(milestones.map(m => m.date), ['2026-12-12', '2026-12-14', '2026-12-15', '2026-12-17', '2026-12-21', '2026-12-23', '2026-12-24', '2026-12-25', '2026-12-26']);
   for (const day of days) for (const event of day.events.filter(e => e.milestone)) {
     assert.ok(milestones.some(m => m.date === day.date && m.text.includes(event.time)));
   }

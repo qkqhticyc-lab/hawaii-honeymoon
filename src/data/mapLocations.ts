@@ -34,4 +34,5 @@ export const mapLocations: Partial<Record<PlaceId, MapLocation>> = {
   dole: { lat: 21.52657332, lng: -158.03907389, label: '돌 플랜테이션 진입 도로 위치 · 실제 입장·주차 지점 확인 필요', source: 'https://hidot.hawaii.gov/highways/files/2023/10/1_HDOT-Oahu-TS-Inventory.pdf' },
   outlet: { lat: 21.40221, lng: -158.00681, label: '와이켈레 아울렛 구역 · 실제 주차 지점 확인 필요', source: 'https://mapcarta.com/W508845818' },
   hanauma: { lat: 21.27139, lng: -157.69444, label: '하나우마베이 구역 · 입장·왕복 교통·집합 장소 확인 필요', source: 'https://en.wikipedia.org/wiki/Hanauma_Bay' },
+  photo: { lat: 21.293765, lng: -157.861907, label: '카카아코 워터프런트파크 대표 위치 · 카라이 픽업과 별개이며 실제 촬영 구역은 작가 안내 확인', source: 'https://maps.campendium.com/us/east-honolulu-hi/nature/kakaako-waterfront-park-east-honolulu-hi--2' },
 };
