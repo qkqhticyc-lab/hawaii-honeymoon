@@ -56,8 +56,6 @@ export default function DayMap({ day }: { day: Day }) {
     markers.current.clear();
     const visibleStops = stops.filter(s => s.location && (showInternational || s.id !== 'icn'));
     const positions = visibleStops.map(stop => coordinate(stop.id)!);
-    // Include the Kona region in the viewport without inventing a lodging marker.
-    if (stops.some(stop => stop.id === 'kona')) positions.push(coordinate('town')!);
     fitMap.current = () => {
       if (positions.length > 1) instance.fitBounds(L.latLngBounds(positions), { padding: [45, 45], maxZoom: 16, animate: false });
       else if (positions.length === 1) instance.setView(positions[0], 15, { animate: false });

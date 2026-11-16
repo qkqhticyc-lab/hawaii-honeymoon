@@ -1,13 +1,14 @@
 // Source of truth: the itinerary supplied by the travelers. No live availability is implied.
 export type Status = '확정' | '계획' | '선택' | '확인 필요';
 export type Place = { name: string; query?: string; note?: string };
+export const konaAddress = '75-6008 Aliʻi Drive, Kailua-Kona, HI 96740';
 export const places = {
   icn: { name: 'ICN · 인천국제공항', query: 'Incheon International Airport' },
   hnl: { name: 'HNL · 호놀룰루 공항', query: 'Daniel K Inouye International Airport Honolulu' },
   ogg: { name: 'OGG · 마우이 카훌루이 공항', query: 'Kahului Airport Maui' },
   koa: { name: 'KOA · 빅아일랜드 코나 공항', query: 'Ellison Onizuka Kona International Airport' },
   grand: { name: '그랜드 와일레아', query: 'Grand Wailea 3850 Wailea Alanui Drive Wailea HI 96753' },
-  kona: { name: '코나 에어비앤비', note: '정확한 숙소 위치 미확인. Aliʻi Drive의 Green Flash Coffee 인근.' },
+  kona: { name: 'Kona Shores Condominium', query: `Kona Shores Condominium, ${konaAddress}`, note: '지도는 단지 위치입니다. 객실·주차·출입은 에어비앤비 호스트 안내를 확인하세요.' },
   kalai: { name: '카라이 와이키키', query: 'Ka Lai Waikiki Beach 223 Saratoga Road Honolulu HI 96815' },
   wailea: { name: '와일레아 비치', query: 'Wailea Beach Maui' },
   haleakala: { name: '할레아칼라 정상 구역', query: 'Haleakala National Park Summit Maui' },
@@ -45,7 +46,7 @@ export type PlaceId = keyof typeof places;
 export type Stay = { id: 'grand' | 'kona' | 'kalai'; name: string; island: string; checkIn: string; checkOut: string; nights: number; room: string; location: string; hours: string; notes: string[]; status: Status };
 export const stays: Stay[] = [
   { id: 'grand', name: 'Grand Wailea, A Waldorf Astoria Resort', island: '마우이', checkIn: '2026-12-12', checkOut: '2026-12-17', nights: 5, room: '성인 2명 · 기본 객실 · 포인트 숙박', location: '마우이 남부 와일레아 · 해변과 리조트 휴양 중심 지역', hours: '예약 당시 체크인 16:00 / 체크아웃 11:00 안내', notes: ['3850 Wailea Alanui Drive, Wailea, HI 96753', '객실 업그레이드는 확정되지 않았습니다.'], status: '확정' },
-  { id: 'kona', name: '코나 에어비앤비', island: '빅아일랜드', checkIn: '2026-12-17', checkOut: '2026-12-21', nights: 4, room: '성인 2명', location: '서쪽 카일루아코나 · Aliʻi Drive의 Green Flash Coffee 인근', hours: '예약 당시 체크인 16:00 이후 / 체크아웃 시각 확인 필요', notes: ['정확한 숙소명·주소·좌표 미확인', '주차·출입 방법 확인 필요'], status: '확정' },
+  { id: 'kona', name: places.kona.name, island: '빅아일랜드', checkIn: '2026-12-17', checkOut: '2026-12-21', nights: 4, room: '성인 2명 · 에어비앤비', location: konaAddress, hours: '예약 당시 체크인 16:00 이후 / 체크아웃 시각 확인 필요', notes: ['세대 번호·주차·출입 방법은 에어비앤비 호스트 안내 확인'], status: '확정' },
   { id: 'kalai', name: 'Ka Laʻi Waikiki Beach, LXR Hotels & Resorts', island: '오아후', checkIn: '2026-12-21', checkOut: '2026-12-25', nights: 4, room: '성인 2명 · 일반 객실', location: '와이키키 서쪽 · 해변·식당·쇼핑에 접근하기 편한 위치', hours: '예약 당시 체크인 16:00 / 체크아웃 12:00 안내', notes: ['223 Saratoga Road, Honolulu, HI 96815', '취사 가능 범위·조리 비품 확인 필요. 스위트 또는 풀 키친 보장 없음.'], status: '확정' },
 ];
 export type Flight = { id: string; airline: string; from: PlaceId; to: PlaceId; departure: string; arrival: string; departureZone: 'Asia/Seoul' | 'Pacific/Honolulu'; arrivalZone: 'Asia/Seoul' | 'Pacific/Honolulu'; duration: string; status: Status; notes: string[] };
@@ -152,7 +153,7 @@ export const days: Day[] = [
       e(konaRental.pickup, '빅아일랜드 렌터카 인수', 'koa', '확정', [konaRental.vehicle, konaRental.office, konaRental.doors, '인수 시 운전면허증·신용카드·여권 지참'], { links: [konaRentalMap] }),
       e('16:00 이후 · 예약 안내', '코나 숙소 체크인', 'kona', '확정', ['주차·출입 방법 확인 필요']),
       e('저녁 · 계획', '장보기 · 식사 · 휴식', 'kona'),
-    ], routes: [{ mode: '차량', stops: ['grand', 'ogg'] }, { mode: '비행기', stops: ['ogg', 'koa'] }, { mode: '차량', stops: ['koa', 'kona'], note: '15:00 KOA Hertz 인수 후 숙소 이동 · 숙소 주소 확인 필요' }] },
+    ], routes: [{ mode: '차량', stops: ['grand', 'ogg'] }, { mode: '비행기', stops: ['ogg', 'koa'] }, { mode: '차량', stops: ['koa', 'kona'], note: '15:00 KOA Hertz 인수 후 Kona Shores Condominium으로 이동' }] },
   { date: '2026-12-18', island: '빅아일랜드', title: '일몰에서 별빛까지', intro: '마우나케아 정상에서 일몰, 하산 후 낮은 고도의 지정 장소에서 별 관찰.', alert: '정상은 조건 확인 후 이동하는 계획입니다. 차량 계약·보험·도로 개방·기상을 확인하세요.', events: [
       e('오전 · 계획', '여유로운 아침 · 휴식', 'kona'),
       e('13:00 전후 · 출발 목표', '코나에서 출발', 'kona'),
@@ -160,7 +161,7 @@ export const days: Day[] = [
       e('일몰 전 · 계획', '조건 확인 후 정상 이동 · 일몰 관람', 'summit', '계획', ['차량·도로·기상·운행 조건 확인 필요', '정상 이동·일몰·별 관찰 시각은 기상·개방 상태·고도 적응·차량 계약을 확인한 뒤 결정합니다.', '4WD 여부만으로 렌터카 계약상 정상 운행이 허용되는 것은 아닙니다.']),
       e('하산 후 · 계획', '낮은 고도의 지정 관측 장소에서 별 관찰', 'stars', '계획', ['정상에서 밤늦게 머무르는 일정이 아닙니다. 관측 장소는 확인 필요.']),
       e('저녁 · 계획', '코나 복귀 · 휴식', 'kona'),
-    ], routes: [{ mode: '차량', stops: ['kona', 'visitor', 'summit', 'stars', 'kona'], note: '조건부 이동 계획 · 관측 장소와 숙소 주소 미확인' }] },
+    ], routes: [{ mode: '차량', stops: ['kona', 'visitor', 'summit', 'stars', 'kona'], note: '조건부 이동 계획 · 별 관측 장소 미확인' }] },
   { date: '2026-12-19', island: '빅아일랜드', title: '코나의 느린 하루', intro: '카페와 바닷가 산책. 날씨에 따라 전날의 일정을 조정할 수 있는 여유.', events: [
       e('10:00~14:00 · 계획', '코나 시내 · 카페 · 바닷가 산책', 'town'),
       e('시간 미정', '커피 농장 한 곳', 'coffee', '선택'),

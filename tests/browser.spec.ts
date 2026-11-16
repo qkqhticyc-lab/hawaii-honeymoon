@@ -34,9 +34,9 @@ test('date selection persists through reload and history, with correct accommoda
   await expect(page).toHaveURL(/date=2026-12-17/);
   await page.reload();
   await expect(page.locator('.stay-card')).toContainText('그랜드 와일레아');
-  await expect(page.locator('.stay-card')).toContainText('코나 에어비앤비');
+  await expect(page.locator('.stay-card')).toContainText('Kona Shores Condominium');
   await page.getByRole('button', { name: /12. 21.*월요일/ }).click();
-  await expect(page.locator('.stay-card')).toContainText('코나 에어비앤비');
+  await expect(page.locator('.stay-card')).toContainText('Kona Shores Condominium');
   await expect(page.locator('.stay-card')).toContainText('카라이 와이키키');
   await page.goBack();
   await expect(page.locator('.date-button.selected')).toHaveText(/17/);
@@ -170,7 +170,7 @@ test('interactive daily map selects destinations, zooms and falls back without t
   await page.locator('.day-map-panel').screenshot({ path: `test-results/${testInfo.project.name}-map.png` });
 });
 
-test('map changes routes and dates, and unknown lodging never gets a marker', async ({ page }) => {
+test('map changes routes and dates and distinguishes Kona Shores from an unknown stop', async ({ page }) => {
   await page.goto('./#view=daily&date=2026-12-17');
   await page.locator('.map-filters button').filter({ hasText: '2. 비행기' }).click();
   await expect(page.locator('.destination-marker')).toHaveCount(2);
@@ -178,10 +178,10 @@ test('map changes routes and dates, and unknown lodging never gets a marker', as
   await expect(page.locator('.map-destinations')).not.toContainText('그랜드');
   await page.getByRole('button', { name: /12. 18.*금요일/ }).click();
   await expect(page.locator('.map-filters button').first()).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.destination-marker')).toHaveCount(2);
-  await expect(page.locator('.destination-marker[title*="코나 에어비앤비"]')).toHaveCount(0);
-  await page.locator('.map-destinations button').filter({ hasText: '코나 에어비앤비' }).click();
-  await expect(page.locator('.map-selection')).toContainText('정확한 숙소 위치 미확인');
+  await expect(page.locator('.destination-marker')).toHaveCount(3);
+  await expect(page.locator('.destination-marker[title*="Kona Shores Condominium"]')).toHaveCount(1);
+  await page.locator('.map-destinations button').filter({ hasText: 'Kona Shores Condominium' }).click();
+  await expect(page.locator('.map-selection')).toContainText('단지 대표 위치');
   await page.goto('./#view=daily&date=2026-12-12');
   await expect(page.locator('.destination-marker[title*="ICN"]')).toHaveCount(0);
   await page.getByRole('button', { name: '한국까지 보기' }).click();

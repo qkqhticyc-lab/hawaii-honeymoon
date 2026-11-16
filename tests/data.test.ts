@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { days, flights, places, stays, tasks, transport, type Place } from '../src/data/trip.ts';
+import { days, flights, places, stays, tasks, transport } from '../src/data/trip.ts';
 import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, milestones, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
@@ -65,9 +65,13 @@ test('planning remains planning; only known reservations are confirmed', () => {
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
 test('unknown locations cannot accidentally become navigation destinations', () => {
-  assert.equal((places.kona as Place).query, undefined);
-  assert.equal(mapUrl('kona'), undefined);
-  assert.equal(directionUrl({ mode: '차량', stops: ['koa', 'kona'] }), undefined);
+  assert.equal(mapUrl('stars'), undefined);
+  assert.equal(directionUrl({ mode: '차량', stops: ['koa', 'stars'] }), undefined);
+  const kona = nightStay('2026-12-17')!;
+  assert.equal(kona.name, 'Kona Shores Condominium');
+  assert.match(kona.location, /75-6008 Aliʻi Drive, Kailua-Kona, HI 96740/);
+  assert.match(new URL(mapUrl('kona')!).searchParams.get('query')!, /Kona Shores Condominium.*75-6008/);
+  assert.match(new URL(directionUrl({ mode: '차량', stops: ['koa', 'kona'] })!).searchParams.get('destination')!, /Kona Shores Condominium.*75-6008/);
   assert.equal(directionUrl({ mode: '비행기', stops: ['hnl', 'ogg'] }), undefined);
   assert.match(directionUrl({ mode: '도보', stops: ['kalai', 'orchids', 'kalai'] })!, /waypoints=/);
 });
@@ -138,17 +142,17 @@ test('map references have sources and never invent accommodation or meeting poin
     assert.match(location.source, /^https:\/\//);
     assert.ok(location.label.length > 0);
   }
-  for (const id of ['kona', 'stars', 'coffee', 'village', 'macadamia', 'lunch'] as const) assert.equal(mapLocations[id], undefined);
+  for (const id of ['stars', 'coffee', 'village', 'macadamia', 'lunch'] as const) assert.equal(mapLocations[id], undefined);
   assert.ok(Math.abs(coordinate('icn')![1] - coordinate('hnl')![1]) < 90);
 });
 
 test('map route lines break at unknown stops and numbering is stable on return visits', () => {
-  const segments = mapSegments([{ mode: '차량', stops: ['grand', 'kona', 'haleakala', 'grand'] }]);
+  const segments = mapSegments([{ mode: '차량', stops: ['grand', 'stars', 'haleakala', 'grand'] }]);
   assert.deepEqual(segments.map(s => [s.from, s.to]), [['haleakala', 'grand']]);
   const stops = mapStops([{ mode: '도보', stops: ['grand', 'wailea', 'grand'] }]);
   assert.deepEqual(stops.map(s => [s.id, s.number]), [['grand', 1], ['wailea', 2]]);
   const day18 = mapSegments(days.find(d => d.date === '2026-12-18')!.routes);
-  assert.deepEqual(day18.map(s => [s.from, s.to]), [['visitor', 'summit']]);
+  assert.deepEqual(day18.map(s => [s.from, s.to]), [['kona', 'visitor'], ['visitor', 'summit']]);
 });
 
 test('Oahu main routes match day rental, Hanauma return and separate hiking/dinner transport', () => {
