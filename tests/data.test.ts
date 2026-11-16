@@ -4,6 +4,23 @@ import { days, flights, places, stays, tasks, transport, type Place } from '../s
 import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, milestones, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
+import { checklistChanges, createSharedChecklist } from '../src/sharedChecklist.ts';
+
+test('shared checklist saves only changed checks and keeps the server state of other items', async t => {
+  const saved = { photo: true, sim: false, taxi: false };
+  const changes = checklistChanges(saved, { photo: true, taxi: true });
+  assert.deepEqual(changes, { taxi: true });
+  const fetch = t.mock.method(globalThis, 'fetch', async (_url: URL, _init: RequestInit) => Response.json([
+    { task_id: 'photo', checked: true }, { task_id: 'sim', checked: true }, { task_id: 'taxi', checked: true },
+  ]));
+  const shared = createSharedChecklist({ url: 'https://example.test', publishableKey: 'test' }, Object.keys(saved));
+  assert.deepEqual(await shared.save(changes), { photo: true, sim: true, taxi: true });
+  const [url, request] = fetch.mock.calls[0].arguments;
+  assert.ok(url instanceof URL);
+  assert.ok(request);
+  assert.equal(url.pathname, '/rest/v1/rpc/save_trip_checklist');
+  assert.deepEqual(JSON.parse(request.body as string), { changes: [{ task_id: 'taxi', checked: true }] });
+});
 
 test('15 consecutive date-only days and correct weekdays', () => {
   assert.equal(days.length, 15);

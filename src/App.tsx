@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { days, flights, flightNotice, places, stays, tasks, transport, type Flight, type Place, type PlaceId, type Status } from './data/trip';
 import { dateLabel, directionUrl, flightLocal, loadChecklist, locationHash, mapUrl, milestones, nightStay, readLocation, STORAGE_KEY, todayInHawaii, views, weekday, type View } from './lib';
 import DayMap from './DayMap';
+import { checklistChanges, createSharedChecklist, type Checks } from './sharedChecklist';
+import { sharedChecklistConfig } from './sharedChecklistConfig';
 
 const statusClass: Record<Status, string> = { '확정': 'confirmed', '계획': 'planned', '선택': 'optional', '확인 필요': 'pending' };
+const sharedChecklist = sharedChecklistConfig && createSharedChecklist(sharedChecklistConfig, tasks.map(t => t.id));
 function Badge({ status }: { status: Status }) { return <span className={`badge ${statusClass[status]}`}><span aria-hidden="true" />{status}</span>; }
 function MapLink({ id, compact = false }: { id: PlaceId; compact?: boolean }) {
   const place: Place = places[id]; const url = mapUrl(id);
@@ -16,8 +19,16 @@ function FlightTimes({ flight }: { flight: Flight }) {
 
 export default function App() {
   const [location, setLocation] = useState(() => readLocation(window.location.hash));
-  const [checked, setChecked] = useState(() => { try { return loadChecklist(localStorage.getItem(STORAGE_KEY)); } catch { return loadChecklist(null); } });
-  const [savedChecked, setSavedChecked] = useState(checked);
+  const [savedChecked, setSavedChecked] = useState(() => {
+    if (sharedChecklist) return loadChecklist(null);
+    try { return loadChecklist(localStorage.getItem(STORAGE_KEY)); } catch { return loadChecklist(null); }
+  });
+  const [draft, setDraft] = useState<Checks>({});
+  const [sharedReady, setSharedReady] = useState(!sharedChecklist);
+  const [sharedReadError, setSharedReadError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const revision = useRef(0);
   const [saveMessage, setSaveMessage] = useState('');
   const [storageError, setStorageError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'todo' | 'done'>('all');
@@ -25,9 +36,11 @@ export default function App() {
   const selectedDate = useRef<HTMLButtonElement>(null);
   const day = days.find(d => d.date === location.date)!;
   const index = days.indexOf(day), stay = nightStay(day.date);
+  const checked = { ...savedChecked, ...draft };
+  const changes = checklistChanges(savedChecked, draft);
   const completed = tasks.filter(t => checked[t.id]).length;
   const savedCompleted = tasks.filter(t => savedChecked[t.id]).length;
-  const changedCount = tasks.filter(t => checked[t.id] !== savedChecked[t.id]).length;
+  const changedCount = Object.keys(changes).length;
   const navigate = (view: View, date = day.date) => { window.location.hash = locationHash(date, view); };
   useEffect(() => {
     const change = () => setLocation(readLocation(window.location.hash));
@@ -39,23 +52,67 @@ export default function App() {
     document.title = `${location.view === 'daily' ? `${dateLabel(day.date)} · ` : ''}Our Hawaii Honeymoon`;
     selectedDate.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, [location.date, location.view, day.date]);
+  useEffect(() => {
+    if (!sharedChecklist) return;
+    let active = true;
+    let refreshing = false;
+    async function refresh() {
+      if (document.hidden || savingRef.current || refreshing) return;
+      const version = revision.current;
+      refreshing = true;
+      try {
+        const saved = await sharedChecklist!.read();
+        if (!active || version !== revision.current) return;
+        setSavedChecked(saved);
+        setDraft(pending => checklistChanges(saved, pending));
+        setSharedReady(true);
+        setSharedReadError(false);
+      } catch {
+        if (active && version === revision.current) setSharedReadError(true);
+      } finally {
+        refreshing = false;
+      }
+    }
+    void refresh();
+    const timer = window.setInterval(refresh, 10000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
   function toggleTask(id: string, value: boolean) {
-    setChecked(prev => ({ ...prev, [id]: value }));
+    setDraft(prev => checklistChanges(savedChecked, { ...prev, [id]: value }));
     setSaveMessage('');
   }
-  function saveChecklist() {
+  async function saveChecklist() {
+    if (savingRef.current || !sharedReady || changedCount === 0) return;
+    savingRef.current = true;
+    setSaving(true);
+    revision.current++;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
-      setSavedChecked({ ...checked });
+      if (sharedChecklist) {
+        setSavedChecked(await sharedChecklist.save(changes));
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
+        setSavedChecked(checked);
+      }
+      setDraft({});
       setStorageError(false);
-      setSaveMessage('체크 내용을 저장했어요.');
+      setSaveMessage(sharedChecklist ? '공유 목록에 저장했어요.' : '체크 내용을 저장했어요.');
     } catch {
       setStorageError(true);
       setSaveMessage('');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
   function discardChecklistChanges() {
-    setChecked({ ...savedChecked });
+    setDraft({});
     setStorageError(false);
     setSaveMessage('마지막 저장 상태로 되돌렸어요.');
   }
@@ -87,12 +144,12 @@ export default function App() {
         </>}
         {location.view === 'overview' && <section aria-labelledby="overview-title"><div className="view-title"><p className="eyebrow coral">THE BIG PICTURE</p><h2 id="overview-title">세 개의 섬, 하나의 여행</h2><p>성인 2명 · 한국 출발 12/12 · 하와이 출발 12/25 · 한국 도착 12/26</p></div><div className="island-cards">{stays.map((s, i) => <button className={`island-card island-${i}`} key={s.id} onClick={() => navigate('daily', s.checkIn)}><span className="eyebrow">0{i + 1} / {['MAUI', 'BIG ISLAND', 'OʻAHU'][i]}</span><div className="island-art" aria-hidden="true"><svg viewBox="0 0 200 100"><path d={['M38 31 Q54 8 79 32 L95 47 Q121 20 145 39 L172 64 Q163 89 137 78 L98 66 Q69 90 48 69Z', 'M85 12 Q111 28 132 35 L163 62 Q147 80 112 89 L58 76 Q37 56 60 36Z', 'M52 23 L78 17 L103 43 L143 52 L153 75 L129 84 L95 65 L75 66 L40 43Z'][i]} /></svg></div><h3>{s.island}<span>{s.nights}박</span></h3><p>{s.checkIn.slice(5).replace('-', '.')} — {s.checkOut.slice(5).replace('-', '.')}</p><span className="island-theme">{['리조트 휴양 · 일출 · 푸른 바다', '화산 · 일몰 · 별빛', '와이키키 · 둘만의 크리스마스'][i]}</span><span className="island-link">이 섬의 첫날 보기 ↗</span></button>)}</div><p className="footnote">섬 그림은 장식용이며 지리적 위치나 이동 경로를 나타내지 않습니다.</p><div className="overview-bottom"><section className="paper-card"><h3>여행의 중요한 순간들</h3><div className="milestones">{milestones.map(m => <a href={locationHash(m.date, 'daily')} key={m.date}><time>{m.date.slice(5).replace('-', '/')}</time><span>{m.text}</span><span aria-hidden="true">↗</span></a>)}</div></section><section className="paper-card travel-rhythm"><span className="eyebrow">OUR PACE</span><h3>일정 사이에,<br />쉬어가는 시간.</h3><p>마우이에서는 호텔 휴양을 충분히.<br />운전은 한 사람이 주로 맡으니 무리 없이.<br />바다에선 경험에 맞춰 천천히.</p><button className="primary-button" onClick={() => navigate('prepare')}>여행 준비 {savedCompleted} / {tasks.length} →</button></section></div></section>}
         {location.view === 'bookings' && <section aria-labelledby="booking-title"><div className="view-title"><p className="eyebrow coral">OUR RESERVATIONS</p><h2 id="booking-title">잠시 머물 집, 다음 섬으로 가는 길</h2><p>숙소와 항공은 예약 확정 · 세부 조건과 최신 변경 사항은 재확인이 필요해요.</p></div><h3 className="group-title">숙소 <span>5박 + 4박 + 4박 = 13박</span></h3><div className="booking-stays">{stays.map(s => <article className="paper-card" key={s.id}><div className="section-line"><span className="eyebrow">{s.island} / {s.nights} NIGHTS</span><Badge status={s.status} /></div><h3>{s.name}</h3><p>{s.room}</p><div className="stay-dates"><div><span>체크인</span><strong>{s.checkIn}</strong></div><span aria-hidden="true">→</span><div><span>체크아웃</span><strong>{s.checkOut}</strong></div></div><p>{s.hours}</p><p>{s.location}</p><ul className="note-list">{s.notes.map(n => <li key={n}>{n}</li>)}</ul><MapLink id={s.id} compact /></article>)}</div><h3 className="group-title">항공 <span>5편 · 출도착지의 현지시간</span></h3><div className="notice"><span className="notice-icon" aria-hidden="true">i</span><p>{flightNotice}</p></div><div className="flight-list">{flights.map(f => <article className="paper-card" key={f.id}><div className="section-line"><h3>{f.id} <span>{f.airline}</span></h3><Badge status={f.status} /></div><FlightTimes flight={f} />{f.notes.length > 0 && <ul className="note-list">{f.notes.map(n => <li key={n}>{n}</li>)}</ul>}<div className="flight-map-links"><MapLink id={f.from} /><MapLink id={f.to} /></div></article>)}</div><h3 className="group-title">렌터카·교통</h3><div className="transport-list">{transport.map(t => <article className="paper-card" key={t.title}><div className="section-line"><h3>{t.title}</h3><Badge status={t.status} /></div><p>{t.detail}</p><ul className="note-list">{t.notes.map(n => <li key={n}>{n}</li>)}</ul></article>)}</div></section>}
-        {location.view === 'prepare' && <section aria-labelledby="prepare-title"><div className="view-title"><p className="eyebrow coral">BEFORE WE GO</p><h2 id="prepare-title">하나씩 준비하는, 우리 여행</h2><p>항목을 체크한 뒤 ‘체크 내용 저장’을 눌러주세요. 이 기기·브라우저에만 저장되며 다른 기기와 자동 동기화되지 않아요.</p></div><div className="progress-card"><div><strong>{completed}<span> / {tasks.length}</span></strong><p>준비 완료</p></div><div className="progress-area"><label htmlFor="progress">{tasks.length - completed ? `남은 준비 ${tasks.length - completed}개, 하나씩 차근차근.` : '모든 준비 항목을 체크했어요.'}</label><progress id="progress" value={completed} max={tasks.length} /></div></div>
+        {location.view === 'prepare' && <section aria-labelledby="prepare-title"><div className="view-title"><p className="eyebrow coral">BEFORE WE GO</p><h2 id="prepare-title">하나씩 준비하는, 우리 여행</h2><p>항목을 체크한 뒤 ‘체크 내용 저장’을 눌러주세요. {sharedChecklist ? '저장하면 다른 기기에도 반영돼요. 이 페이지를 열 수 있는 누구나 수정할 수 있어요.' : '이 기기·브라우저에만 저장돼요.'}</p></div><div className="progress-card"><div><strong>{completed}<span> / {tasks.length}</span></strong><p>준비 완료</p></div><div className="progress-area"><label htmlFor="progress">{tasks.length - completed ? `남은 준비 ${tasks.length - completed}개, 하나씩 차근차근.` : '모든 준비 항목을 체크했어요.'}</label><progress id="progress" value={completed} max={tasks.length} /></div></div>
           <div className={`checklist-savebar ${changedCount ? 'has-changes' : ''}`}>
-            <div className="save-status" role="status"><strong>{changedCount ? `저장 전 변경 ${changedCount}개` : saveMessage || '변경 사항 없음'}</strong><p>{changedCount ? '체크를 마쳤다면 저장해주세요. 저장 전 변경은 새로고침하면 사라져요.' : '저장한 체크 내용은 다음에 열 때도 유지됩니다.'}</p></div>
-            <div className="save-actions">{changedCount > 0 && <button className="secondary-button" onClick={discardChecklistChanges}>변경 취소</button>}<button className="primary-button" disabled={changedCount === 0} onClick={saveChecklist}>체크 내용 저장</button></div>
+            <div className="save-status" role="status"><strong>{changedCount ? `저장 전 변경 ${changedCount}개` : saveMessage || (!sharedReady ? '공유 목록을 불러오는 중이에요.' : '변경 사항 없음')}</strong><p>{changedCount ? '체크를 마쳤다면 저장해주세요. 저장 전 변경은 새로고침하면 사라져요.' : '저장한 체크 내용은 다음에 열 때도 유지됩니다.'}</p></div>
+            <div className="save-actions">{changedCount > 0 && <button className="secondary-button" disabled={saving} onClick={discardChecklistChanges}>변경 취소</button>}<button className="primary-button" disabled={changedCount === 0 || !sharedReady || saving} onClick={saveChecklist}>{saving ? '저장 중…' : '체크 내용 저장'}</button></div>
           </div>
-          {storageError && <p role="alert" className="notice">저장하지 못했어요. 브라우저 저장소를 사용할 수 없습니다. 변경 내용은 아직 이 화면에 남아 있으니 저장소 설정을 확인한 뒤 다시 저장해주세요.</p>}<div className="filter-row" aria-label="준비 항목 필터">{([{ id: 'all', label: '전체', count: tasks.length }, { id: 'todo', label: '남은 준비', count: tasks.length - completed }, { id: 'done', label: '완료', count: completed }] as const).map(f => <button key={f.id} className={filter === f.id ? 'active' : ''} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label} <span>{f.count}</span></button>)}</div><div className="checklist">{tasks.filter(t => filter === 'all' || (filter === 'done' ? checked[t.id] : !checked[t.id])).map(t => <article className={`task-row ${checked[t.id] ? 'is-done' : ''}`} key={t.id}><input id={`task-${t.id}`} type="checkbox" checked={checked[t.id]} onChange={event => toggleTask(t.id, event.target.checked)} /><div><label htmlFor={`task-${t.id}`}>{t.title}</label>{t.note && <p>{t.note}</p>}<div className="task-links"><a href={locationHash(t.date, 'daily')}>{t.date.slice(5).replace('-', '/')} 일정 ↗</a><MapLink id={t.place} />{t.links?.map(link => <a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label} ↗</a>)}</div></div><span className="task-state">{checked[t.id] !== savedChecked[t.id] ? '저장 전' : checked[t.id] ? '완료' : '미완료'}</span></article>)}</div>{!tasks.some(t => filter === 'all' || (filter === 'done' ? checked[t.id] : !checked[t.id])) && <p className="empty-state">이 분류에 해당하는 준비 항목이 없어요.</p>}<p className="footnote">체크리스트 완료 표시는 준비 기록입니다. 일정의 예약 상태는 원본 데이터 기준으로 유지됩니다.</p></section>}
+          {sharedReadError && <p role="status" className="notice">공유 목록의 최신 상태를 불러오지 못했어요. 연결이 돌아오면 다시 확인할게요.</p>}{storageError && <p role="alert" className="notice">{sharedChecklist ? '공유 목록에 저장하지 못했어요. 체크한 내용은 화면에 남아 있으니 연결을 확인한 뒤 다시 저장해주세요.' : '저장하지 못했어요. 브라우저 저장소를 사용할 수 없습니다. 변경 내용은 아직 이 화면에 남아 있으니 저장소 설정을 확인한 뒤 다시 저장해주세요.'}</p>}<div className="filter-row" aria-label="준비 항목 필터">{([{ id: 'all', label: '전체', count: tasks.length }, { id: 'todo', label: '남은 준비', count: tasks.length - completed }, { id: 'done', label: '완료', count: completed }] as const).map(f => <button key={f.id} className={filter === f.id ? 'active' : ''} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label} <span>{f.count}</span></button>)}</div><div className="checklist">{tasks.filter(t => filter === 'all' || (filter === 'done' ? checked[t.id] : !checked[t.id])).map(t => <article className={`task-row ${checked[t.id] ? 'is-done' : ''}`} key={t.id}><input id={`task-${t.id}`} type="checkbox" disabled={!sharedReady || saving} checked={checked[t.id]} onChange={event => toggleTask(t.id, event.target.checked)} /><div><label htmlFor={`task-${t.id}`}>{t.title}</label>{t.note && <p>{t.note}</p>}<div className="task-links"><a href={locationHash(t.date, 'daily')}>{t.date.slice(5).replace('-', '/')} 일정 ↗</a><MapLink id={t.place} />{t.links?.map(link => <a key={link.url} href={link.url} target="_blank" rel="noreferrer">{link.label} ↗</a>)}</div></div><span className="task-state">{checked[t.id] !== savedChecked[t.id] ? '저장 전' : checked[t.id] ? '완료' : '미완료'}</span></article>)}</div>{!tasks.some(t => filter === 'all' || (filter === 'done' ? checked[t.id] : !checked[t.id])) && <p className="empty-state">이 분류에 해당하는 준비 항목이 없어요.</p>}<p className="footnote">체크리스트 완료 표시는 준비 기록입니다. 일정의 예약 상태는 원본 데이터 기준으로 유지됩니다.</p></section>}
         <footer><span>OUR HAWAII HONEYMOON</span><p>예약과 계획을 구분해, 우리만의 속도로.</p><div className="status-legend">{(['확정', '계획', '선택', '확인 필요'] as Status[]).map(s => <Badge key={s} status={s} />)}</div></footer>
       </main>
     </div>
