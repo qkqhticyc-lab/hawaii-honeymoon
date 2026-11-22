@@ -18,7 +18,7 @@ insert into public.trip_checklist (task_id, checked) values
   ('esta', false), ('transfer', false), ('molokini', true), ('jeep', true),
   ('maunakea', false), ('oahu-day-rental', true), ('diamond-head-entry', false),
   ('hanauma', false), ('photo', true), ('diamond', true), ('email', true),
-  ('email-kalai', false), ('credit', false), ('entry', false), ('taxi', false),
+  ('email-kalai', false), ('credit', false), ('entry', false), ('taxi', true),
   ('insurance', false), ('license', false), ('sim', false), ('gear', false),
   ('offline', false), ('cancel', false);
 

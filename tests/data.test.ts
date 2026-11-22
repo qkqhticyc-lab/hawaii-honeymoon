@@ -60,7 +60,7 @@ test('planning remains planning; only known reservations are confirmed', () => {
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
-  assert.equal(tasks.filter(t => t.done).length, 10);
+  assert.equal(tasks.filter(t => t.done).length, 11);
   assert.equal(tasks.length, 25);
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
@@ -200,7 +200,7 @@ test('retired tour task is inactive while old browser records and new pending re
   assert.equal(migrated.tour, undefined);
   const oahu = transport[2];
   assert.ok(!/조인|투어 차량/.test(JSON.stringify(oahu)));
-  for (const part of ['12/21·25 공항 한인택시 계획', '12/24 등산 택시 왕복 계획']) assert.ok(oahu.detail.includes(part));
+  for (const part of ['12/24 등산 택시 왕복 계획']) assert.ok(oahu.detail.includes(part));
   const rental = transport.find(t => t.title.startsWith('오아후 · Hertz'))!;
   assert.equal(rental.status, '확정');
   assert.match(rental.detail, /12\/22 09:00 인수 → 12\/23 13:00 반납/);
@@ -277,4 +277,22 @@ test('confirmed sunset pickup is distinct from shooting time and pending Oahu en
   for (const day of days) for (const event of day.events.filter(e => e.milestone)) {
     assert.ok(milestones.some(m => m.date === day.date && m.text.includes(event.time)));
   }
+});
+
+test('Hana Taxi confirmations distinguish flight arrival from pickup and map both transfers', () => {
+  const arrivalDay = days.find(d => d.date === '2026-12-21')!;
+  const departureDay = days.find(d => d.date === '2026-12-25')!;
+  const arrival = arrivalDay.events.find(e => e.title.includes('하나택시'))!;
+  const departure = departureDay.events.find(e => e.title.includes('하나택시'))!;
+  assert.deepEqual([arrival.time, arrival.status, arrival.place], ['16:30 · 예약상 항공 도착 기준', '확정', 'hnl']);
+  assert.match(arrival.notes.join(' '), /수하물 수령 후 연락/);
+  assert.deepEqual([departure.time, departure.status, departure.place], ['11:00 · 예약 픽업', '확정', 'kalai']);
+  assert.equal(departureDay.events.some(e => e.time.includes('10:00~10:15')), false);
+  for (const day of [arrivalDay, departureDay]) {
+    const route = day.routes.find(r => r.mode === '한인택시')!;
+    assert.match(route.note!, /예약 확정/);
+    assert.equal(mapSegments([route]).length, 1);
+  }
+  assert.equal(tasks.find(t => t.id === 'taxi')!.done, true);
+  assert.equal(loadChecklist(null).taxi, true);
 });

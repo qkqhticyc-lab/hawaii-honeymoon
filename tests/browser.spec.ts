@@ -324,7 +324,7 @@ test('Oahu transport summary and pending tasks match while legacy tour checks ar
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('nav a').filter({ hasText: '숙소·항공' }).click();
   const transport = page.locator('.transport-list');
-  await expect(transport).toContainText('12/21·25 공항 한인택시 계획');
+  await expect(transport).toContainText('하나택시 공항 왕복');
   await expect(transport).toContainText('12/22 09:00 인수 → 12/23 13:00 반납');
   await expect(transport).toContainText('예약 총액 US$101.60');
   await expect(transport).toContainText('12/24 등산 택시 왕복 계획');
@@ -391,4 +391,21 @@ test('confirmed sunset pickup, photo route and pending entry reservations are vi
   await expect(page.locator('#task-diamond-head-entry').locator('..')).toContainText('하와이 11/24부터');
   await expect(page.locator('#task-diamond-head-entry').locator('..').getByRole('link', { name: /공식 예약 안내/ })).toHaveAttribute('href', 'https://gostateparks.hawaii.gov/diamondhead/about');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('confirmed Hana Taxi transfers appear on each date map and checklist', async ({ page }) => {
+  for (const [date, title, time] of [
+    ['2026-12-21', '하나택시 공항 픽업 · 카라이 이동', '16:30 · 예약상 항공 도착 기준'],
+    ['2026-12-25', '하나택시 호텔 픽업 · 공항 이동', '11:00 · 예약 픽업'],
+  ]) {
+    await page.goto('./#view=daily&date=' + date);
+    const transfer = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
+    await expect(transfer).toContainText(time);
+    await expect(transfer.locator('.badge')).toHaveText('확정');
+    await expect(page.locator('.route-card')).toContainText('하나택시 예약 확정');
+    await expect(page.locator('.map-destinations')).toContainText('HNL');
+    await expect(page.locator('.map-destinations')).toContainText('카라이');
+  }
+  await page.goto('./#view=prepare&date=2026-12-25');
+  await expect(page.getByLabel('공항 한인택시 예약', { exact: true })).toBeChecked();
 });

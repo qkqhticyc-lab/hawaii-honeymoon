@@ -75,11 +75,27 @@ const oahuRental = {
   price: '예약 총액 US$101.60',
   hours: '예약 안내 기준 지점 영업시간 매일 08:00~16:00',
 };
+const hanaTaxi = {
+  arrivalTime: '16:30 · 예약상 항공 도착 기준',
+  departureTime: '11:00 · 예약 픽업',
+  arrivalNotes: [
+    '하나택시 공항 → 카라이 · 성인 2인 예약 확정. WN2269 도착편으로 등록.',
+    '예약표의 16:30은 항공 도착 시각. 실제 승차는 수하물 수령 후 연락·배차 안내에 따라 진행.',
+    '사우스웨스트 등 하와이안 외 국내선은 예약 메일상 PRE ARRANGED 3 또는 5 안내. 정확한 승차 구역은 짐을 찾은 뒤 하나택시에 확인.',
+    '픽업 시 예약 확인 메일 제시. 예약 메일 안내 기준 와이키키 구간 현금 US$35.',
+  ],
+  departureNotes: [
+    '하나택시 카라이 → 호놀룰루 공항 · 대한항공 출국장 하차 · 성인 2인 예약 확정.',
+    '10:50~10:55 로비 대기 목표. 예약 확인 메일 준비.',
+    'KE052 출발 14:25. 공항 도착 시각은 교통 상황에 따른 예상이며 픽업 예약과 별개입니다.',
+  ],
+};
 export const transport = [
   { title: '마우이 · Hertz K5 또는 동급', status: '확정' as Status, detail: 'OGG 인수 12/12 14:00 → 반납 12/17 11:30 · D0 / SCAR', notes: ['과거 예약 확인 예상 총액 US$218.50 · 현장 후불 (실시간 판매가 아님)', '28인치 1개 + 26인치 1개 캐리어', '기존 더 비싼 예약의 중복 취소 여부 확인 필요'] },
   { title: `빅아일랜드 · ${konaRental.vehicle}`, status: '확정' as Status, detail: 'KOA Hertz 인수 12/17 15:00 → 같은 지점 반납 12/21 13:00 · 하와이 현지시간', notes: [konaRental.price, konaRental.office, konaRental.hours, konaRental.doors, '마우나케아 정상 구간 운행 허용과 보험·면책 범위는 별도 확인 필요'] },
-  { title: '오아후 · 공항택시·등산 택시', status: '계획' as Status, detail: '12/21·25 공항 한인택시 계획 / 12/24 등산 택시 왕복 계획', notes: ['공항 한인택시 예약 미확정', '12/24 택시 또는 차량 호출로 공원 왕복 계획 · 입장권 2인 미예약', '12/25 픽업 10:00~10:15경 검토, HNL 11:00 전후 도착 목표'] },
+  { title: '오아후 · 12/24 등산 택시', status: '계획' as Status, detail: '12/24 등산 택시 왕복 계획', notes: ['택시 또는 차량 호출로 공원 왕복 계획 · 입장권 2인 미예약'] },
   { title: `오아후 · Hertz ${oahuRental.vehicle}`, status: '확정' as Status, detail: oahuRental.detail, notes: [oahuRental.office, oahuRental.price, oahuRental.hours, '12/22 카라이 야간 주차 위치·비용 확인. 12/23 하나우마베이 방문 후 반납 계획.'] },
+  { title: '오아후 · 하나택시 공항 왕복', status: '확정' as Status, detail: '12/21 HNL → 카라이 (WN2269 16:30 도착 기준) / 12/25 11:00 카라이 → HNL · 하와이 현지시간', notes: [...hanaTaxi.arrivalNotes, ...hanaTaxi.departureNotes] },
 ];
 export type ReferenceLink = { label: string; url: string };
 const calypsoLink: ReferenceLink = { label: '칼립소 공식 집결지·지도 안내', url: 'https://calypsomaui.com/cruises/molokini-crater-snorkeling-tour/' };
@@ -181,10 +197,10 @@ export const days: Day[] = [
       e(konaRental.dropoff, '빅아일랜드 렌터카 반납', 'koa', '확정', [konaRental.office, '주유가 필요하면 반납 전에 진행. 차량 반납 후 KOA 터미널로 이동.'], { links: [konaRentalMap] }),
       e('13:30~14:00 · 터미널 도착 목표', 'KOA 터미널 도착 · 탑승 준비', 'koa'),
       f('WN2269'),
-      e('도착 후 · 계획', '한인택시로 카라이 이동', 'kalai', '계획', ['공항 한인택시 픽업 예약 미확정']),
+      e(hanaTaxi.arrivalTime, '하나택시 공항 픽업 · 카라이 이동', 'hnl', '확정', hanaTaxi.arrivalNotes),
       e('18:00~19:00 · 도착 예상', '카라이 도착 · 체크인', 'kalai', '확정', ['숙박 예약은 확정이며 도착 시각은 예상입니다. 예약 당시 체크인 16:00 안내. 공항에서 이동한 후 체크인.']),
       e('저녁 · 계획', '간단한 장보기 · 식사', 'kalai'),
-    ], routes: [{ mode: '차량', stops: ['kona', 'koa'] }, { mode: '비행기', stops: ['koa', 'hnl'] }, { mode: '한인택시', stops: ['hnl', 'kalai'] }] },
+    ], routes: [{ mode: '차량', stops: ['kona', 'koa'] }, { mode: '비행기', stops: ['koa', 'hnl'] }, { mode: '한인택시', stops: ['hnl', 'kalai'], note: '하나택시 예약 확정 · WN2269 16:30 도착 후 수하물 수령·연락. 지도는 공항 대표 위치이며 PRE ARRANGED 실제 승차 구역은 별도 확인.' }] },
   { date: '2026-12-22', island: '오아후', title: '머스탱으로, 파인애플과 쇼핑', intro: '09:00 와이키키 Hertz에서 차를 받아 돌 플랜테이션과 와이켈레 아울렛을 다녀와요. 반납은 다음 날이에요.', events: [
       e('09:00 · 예약', '와이키키 Hertz 렌터카 인수', 'oahuHertz', '확정', [oahuRental.vehicle, oahuRental.office, oahuRental.price, oahuRental.hours], { links: [oahuHertzLink] }),
       e('10:00~11:45 · 목표', '돌 플랜테이션', 'dole', '계획', ['운영시간·방문 조건 확인 필요. 파인애플 열차는 현장 상황에 따라 선택합니다. 목표 시간대를 영업시간으로 해석하지 않습니다.']),
@@ -217,7 +233,13 @@ export const days: Day[] = [
       e('16:45 · 예약', 'Halekulani Orchids · 크리스마스이브 뷔페', 'orchids', '확정', ['2인 예약 · 사용자가 확인한 총액 약 US$374'], { milestone: '오키즈 · 2인 예약' }),
       e('저녁 · 계획', '산책 · 귀국 짐 정리', 'kalai'),
     ], routes: [{ mode: '차량', stops: ['kalai', 'diamondPark', 'kalai'], note: '택시 또는 차량 호출 왕복 계획 · 공원 입구·트레일헤드의 정확한 위치 확인 필요' }, { mode: '도보', stops: ['kalai', 'orchids', 'kalai'], note: '16:30 호텔 출발 목표 · 16:45 오키즈 예약' }] },
-  { date: '2026-12-25', island: '오아후 → 한국', title: '마할로, 하와이', intro: '관광 없이 여유 있게 공항으로. 오늘 밤은 귀국 항공편에서 보내요.', departureStay: 'kalai', events: [e('오전 · 계획', '조식 · 짐 정리 · 체크아웃', 'kalai'), e('10:00~10:15경 · 검토', '한인택시 픽업', 'kalai', '계획', ['예약 완료 여부 미확인']), e('11:00 전후 · 목표', '호놀룰루 공항 도착', 'hnl'), f('KE052')], routes: [{ mode: '한인택시', stops: ['kalai', 'hnl'] }, { mode: '비행기', stops: ['hnl', 'icn'] }] },
+  { date: '2026-12-25', island: '오아후 → 한국', title: '마할로, 하와이', intro: '11:00 하나택시 호텔 픽업, 14:25 대한항공 출발. 오늘 밤은 귀국 항공편에서 보내요.', departureStay: 'kalai', events: [
+    e('오전 · 계획', '조식 · 짐 정리 · 체크아웃', 'kalai'),
+    e('10:50~10:55 · 대기 목표', '카라이 로비에서 픽업 대기', 'kalai'),
+    e(hanaTaxi.departureTime, '하나택시 호텔 픽업 · 공항 이동', 'kalai', '확정', hanaTaxi.departureNotes),
+    e('11:30~12:00 · 도착 예상', '호놀룰루 공항 도착 · 대한항공 탑승 수속', 'hnl', '계획', ['이동 시간은 교통 상황에 따라 달라집니다.']),
+    f('KE052'),
+  ], routes: [{ mode: '한인택시', stops: ['kalai', 'hnl'], note: '하나택시 예약 확정 · 11:00 호텔 픽업 → 대한항공 출국장. 지도는 공항 대표 위치이며 실제 하차는 기사 안내 확인.' }, { mode: '비행기', stops: ['hnl', 'icn'] }] },
   { date: '2026-12-26', island: '한국', title: '우리의 여행, 오래도록', intro: '한국시간 20:20 인천 도착. 두 사람의 하와이 여행을 마무리해요.', events: [e('20:20 · 한국시간 / 예약', 'KE052 인천 도착 · 여행 종료', 'icn', '확정', ['출발은 12/25 14:25 하와이시간. 최신 운항 변경은 출발 전 재확인.'])], routes: [{ mode: '비행기', stops: ['hnl', 'icn'], note: '12/25 하와이 출발 → 12/26 한국 도착' }] },
 ];
 export type Task = { id: string; title: string; done: boolean; date: string; place: PlaceId; note?: string; links?: ReferenceLink[] };
@@ -241,7 +263,7 @@ export const tasks: Task[] = [
   t('email-kalai', '카라이 허니문·객실 선호 메일', '21', 'kalai', false, '사전 요청 11/23~30, 마지막 확인 12/14~17은 추천 계획이며 발송 완료로 확인되지 않았습니다.'),
   t('credit', '호텔별 2인 식음료 크레딧 조건 확인', '21', 'kalai', false, '그랜드 와일레아와 카라이 각각 확인'),
   t('entry', '코나 숙소 주차·출입 정보', '17', 'kona'),
-  t('taxi', '공항 한인택시 예약', '21', 'hnl', false, '12/21 공항 → 카라이 / 12/25 카라이 → 공항'),
+  t('taxi', '공항 한인택시 예약', '21', 'hnl', true, '하나택시 왕복 성인 2인 확정 · 12/21 WN2269 16:30 도착 기준 HNL → 카라이, 수하물 수령 후 연락 / 12/25 11:00 카라이 → HNL 픽업. 예약 메일 지참.'),
   t('insurance', '여행자보험', '12', 'icn'),
   t('license', '국제운전면허증·국내 면허 원본', '12', 'ogg'),
   t('sim', '유심 / eSIM', '12', 'hnl'),
