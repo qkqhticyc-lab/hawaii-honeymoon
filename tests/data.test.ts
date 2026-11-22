@@ -4,6 +4,22 @@ import { days, flights, places, stays, tasks, transport } from '../src/data/trip
 import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, milestones, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
+import { expenseTotals, type Expense } from '../src/privateTravel.ts';
+
+test('expense totals preserve currencies and exclude cancellations, deleted rows and unknown amounts', () => {
+  const rows = [
+    { currency: 'KRW', amount: 0, status: '결제 완료', direction: '지출' },
+    { currency: 'KRW', amount: 100, status: '결제 완료', direction: '지출' },
+    { currency: 'KRW', amount: 200, status: '예정', direction: '지출' },
+    { currency: 'KRW', amount: 300, status: '취소', direction: '지출' },
+    { currency: 'KRW', amount: 400, status: '결제 완료', direction: '지출', deleted_at: '2026-11-22' },
+    { currency: 'KRW', amount: null, status: '예정', direction: '지출' },
+    { currency: 'USD', amount: 0.1, status: '결제 완료', direction: '지출' },
+    { currency: 'USD', amount: 0.2, status: '결제 완료', direction: '지출' },
+    { currency: 'KRW', amount: 50, status: '결제 완료', direction: '수입' },
+  ] as Expense[];
+  assert.deepEqual(expenseTotals(rows), { KRW: { paid: 100, planned: 200, income: 50 }, USD: { paid: 0.3, planned: 0, income: 0 } });
+});
 import { checklistChanges, createSharedChecklist } from '../src/sharedChecklist.ts';
 
 test('shared checklist saves only changed checks and keeps the server state of other items', async t => {

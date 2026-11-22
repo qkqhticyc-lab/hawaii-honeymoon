@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Test map behavior against local geographic data, independent of a public tile server.
 test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ test('all days and views render without horizontal overflow or JavaScript errors
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.locator('.timeline > li').first()).toBeVisible();
   }
-  for (const view of ['overview', 'bookings', 'prepare']) {
+  for (const view of ['overview', 'bookings', 'prepare', 'expenses']) {
     await page.goto(`./#view=${view}&date=2026-12-24`);
     await expect(page.locator('nav [aria-current="page"]')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -409,3 +409,119 @@ test('confirmed Hana Taxi transfers appear on each date map and checklist', asyn
   await page.goto('./#view=prepare&date=2026-12-25');
   await expect(page.getByLabel('공항 한인택시 예약', { exact: true })).toBeChecked();
 });
+
+async function mockPrivateSession(page: Page, owner: boolean) {
+  const sub = '00000000-0000-4000-8000-000000000001';
+  const jwt = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url')}.test-signature`;
+  await page.addInitScript(({ jwt, sub }) => localStorage.setItem('hawaii-honeymoon.auth.v1', JSON.stringify({ access_token: jwt, refresh_token: 'test-refresh', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user: { id: sub, aud: 'authenticated', app_metadata: { provider: 'github' }, user_metadata: {} } })), { jwt, sub });
+  await page.route('**/rest/v1/rpc/travel_owner', route => route.fulfill({ json: owner }));
+  await page.route('**/auth/v1/logout**', route => route.fulfill({ status: 204 }));
+}
+
+test('fifth tab and reservation archive expose a login boundary without private data requests', async ({ page }, testInfo) => {
+  const privateRequests: string[] = [];
+  page.on('request', request => { if (/travel_expenses|travel_documents|storage\/v1/.test(request.url())) privateRequests.push(request.url()); });
+  await page.goto('./#view=expenses&date=2026-12-23');
+  await expect(page.locator('nav a').last()).toContainText('경비 정산');
+  await expect(page.locator('.private-gate').getByRole('button', { name: 'GitHub로 로그인', exact: true })).toBeVisible();
+  await expect(page.locator('.expense-table')).toHaveCount(0);
+  await expect(page.locator('.header-date')).not.toContainText('두 사람, 세 개의 섬');
+  await expect(page.locator('.sidebar-note')).not.toContainText('우리만의 속도로');
+  await page.goto('./#view=bookings&date=2026-12-23');
+  await expect(page.getByRole('heading', { name: '예약확인서·첨부자료', exact: true })).toBeVisible();
+  await expect(page.locator('.document-library')).toHaveCount(0);
+  expect(privateRequests).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `test-results/${testInfo.project.name}-private-login.png`, fullPage: true });
+});
+
+test('a signed-in account rejected by the server cannot load expenses or documents', async ({ page }) => {
+  await mockPrivateSession(page, false);
+  let reads = 0;
+  await page.route('**/rest/v1/travel_expenses**', route => { reads++; return route.fulfill({ status: 403 }); });
+  await page.goto('./#view=expenses&date=2026-12-23');
+  await expect(page.locator('.private-gate')).toContainText('접근 권한이 없습니다');
+  await expect(page.locator('.expense-table')).toHaveCount(0);
+  expect(reads).toBe(0);
+});
+
+test('owner expense editing preserves drafts on conflicts and supports add, delete, undo and logout', async ({ page }, testInfo) => {
+  await mockPrivateSession(page, true);
+  let rows = [{ id: '00000000-0000-4000-8000-000000000002', category: '교통', subcategory: '테스트 교통', vendor: '테스트 업체', direction: '지출', amount: 100, currency: 'KRW', payer: '결제자 A', payment_method: '카드', payment_date: '2026-12-22', status: '결제 완료', memo: '', sort_order: 1, revision: 1, deleted_at: null as string | null }];
+  let conflict = false;
+  await page.route('**/rest/v1/travel_expenses**', async route => {
+    const request = route.request();
+    if (request.method() === 'GET') return route.fulfill({ json: rows.filter(row => !row.deleted_at) });
+    const payload = request.postDataJSON();
+    if (request.method() === 'POST') {
+      const row = { ...rows[0], ...payload, id: '00000000-0000-4000-8000-000000000003', revision: 1, deleted_at: null };
+      rows.push(row); return route.fulfill({ json: row });
+    }
+    const url = new URL(request.url());
+    const row = rows.find(row => `eq.${row.id}` === url.searchParams.get('id'))!;
+    if (conflict || `eq.${row.revision}` !== url.searchParams.get('revision')) return route.fulfill({ status: 406, json: { message: 'Conflict' } });
+    Object.assign(row, payload, { revision: row.revision + 1 });
+    return route.fulfill({ json: row });
+  });
+  await page.goto('./#view=expenses&date=2026-12-23');
+  await expect(page.locator('.expense-table')).toContainText('테스트 교통');
+  await page.getByRole('button', { name: '수정 테스트 교통', exact: true }).click();
+  await page.locator('.expense-form').getByLabel('금액', { exact: true }).fill('999');
+  await page.getByRole('button', { name: '수정 취소', exact: true }).click();
+  expect(rows[0].amount).toBe(100);
+  await page.getByRole('button', { name: '수정 테스트 교통', exact: true }).click();
+  await page.locator('.expense-form').getByLabel('금액', { exact: true }).fill('250');
+  conflict = true;
+  await page.getByRole('button', { name: '경비 저장', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('입력 내용은 유지');
+  await expect(page.locator('.expense-form').getByLabel('금액', { exact: true })).toHaveValue('250');
+  expect(rows[0].amount).toBe(100);
+  conflict = false;
+  await page.getByRole('button', { name: '경비 저장', exact: true }).click();
+  await expect(page.locator('.expense-form')).toHaveCount(0);
+  await expect(page.locator('.expense-table')).toContainText('₩250');
+  await page.getByRole('button', { name: '경비 추가', exact: true }).click();
+  await page.locator('.expense-form').getByLabel('소분류 / 항목명', { exact: true }).fill('추가 지출');
+  await page.locator('.expense-form').getByLabel('금액', { exact: true }).fill('12.50');
+  await page.locator('.expense-form').getByLabel('통화', { exact: true }).selectOption('USD');
+  await page.getByRole('button', { name: '경비 저장', exact: true }).click();
+  await expect(page.locator('.expense-table')).toContainText('US$12.50');
+  await page.getByRole('button', { name: '삭제 추가 지출', exact: true }).click();
+  await expect(page.locator('.expense-table')).not.toContainText('추가 지출');
+  await page.getByRole('button', { name: '삭제 취소', exact: true }).click();
+  await expect(page.locator('.expense-table')).toContainText('추가 지출');
+  await page.reload();
+  await expect(page.locator('.expense-table')).toContainText('₩250');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `test-results/${testInfo.project.name}-expenses.png`, fullPage: true });
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'GitHub로 로그인', exact: true })).toBeVisible();
+  await expect(page.locator('.expense-table')).toHaveCount(0);
+});
+
+test('owner can upload and view a protected image, then logout clears the viewer', async ({ page }) => {
+  await mockPrivateSession(page, true);
+  let documents: Record<string, unknown>[] = [];
+  await page.route('**/rest/v1/travel_documents**', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: documents });
+    const document = { ...route.request().postDataJSON(), id: 'test-document' };
+    documents.push(document); return route.fulfill({ json: document });
+  });
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/1kAAAAASUVORK5CYII=', 'base64');
+  await page.route('**/storage/v1/object/**', route => route.request().method() === 'POST' ? route.fulfill({ json: { Key: 'test-file' } }) : route.fulfill({ body: png, contentType: 'image/png' }));
+  await page.goto('./#view=bookings&date=2026-12-23');
+  await page.locator('.document-upload summary').click();
+  await page.locator('.document-upload select').selectOption('flight:AS1096');
+  await page.locator('.document-upload input:not([type="file"])').fill('테스트 예약확인서');
+  await page.locator('input[type="file"]').setInputFiles({ name: 'confirmation.png', mimeType: 'image/png', buffer: png });
+  await page.getByRole('button', { name: '비공개 자료 저장', exact: true }).click();
+  await expect(page.locator('.document-card')).toContainText('테스트 예약확인서');
+  await page.getByRole('button', { name: '자료 열기 테스트 예약확인서', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('img')).toHaveAttribute('src', /^blob:/);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page.locator('.document-library')).toHaveCount(0);
+});
+

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 test-results/
+.private/
 playwright-report/
 *.tsbuildinfo
 *.log

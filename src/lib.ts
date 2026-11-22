@@ -1,10 +1,11 @@
 import { days, places, stays, tasks, type PlaceId, type Route } from './data/trip';
 
 export const STORAGE_KEY = 'hawaii-honeymoon.checklist.v1';
-export type View = 'daily' | 'overview' | 'bookings' | 'prepare';
+export type View = 'daily' | 'overview' | 'bookings' | 'prepare' | 'expenses';
 export const views: { id: View; name: string; label: string }[] = [
   { id: 'overview', name: '여행 전체', label: '01' }, { id: 'daily', name: '날짜별 일정', label: '02' },
   { id: 'bookings', name: '숙소·항공', label: '03' }, { id: 'prepare', name: '준비할 일', label: '04' },
+  { id: 'expenses', name: '경비 정산', label: '05' },
 ];
 // Parse date-only values explicitly in UTC, never in the viewer's local zone.
 export function dateLabel(date: string, full = false) {
