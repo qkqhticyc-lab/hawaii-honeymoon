@@ -5,6 +5,20 @@ import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUr
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
 import { expenseTotals, type Expense } from '../src/privateTravel.ts';
+import { krwEquivalent, parseUsdKrwRate } from '../src/exchangeRate.ts';
+
+test('USD conversion validates the latest quote and preserves incomplete totals when the quote is unavailable', () => {
+  const payload = { result: 'success', base_code: 'USD', rates: { KRW: 1500.25 }, time_last_update_unix: 1795305752, time_next_update_unix: 1795393182 };
+  const rate = parseUsdKrwRate(payload, 1795310000000);
+  assert.equal(rate.value, 1500.25);
+  assert.equal(rate.updatedAt, 1795305752000);
+  assert.equal(krwEquivalent(100, 2.5, rate), 3851);
+  assert.equal(krwEquivalent(100, 0, null), 100);
+  assert.equal(krwEquivalent(100, 2.5, null), null);
+  for (const invalid of [null, {}, { ...payload, result: 'error' }, { ...payload, base_code: 'KRW' }, { ...payload, rates: { KRW: 0 } }, { ...payload, rates: { KRW: '1500' } }, { ...payload, time_last_update_unix: 'bad' }]) {
+    assert.throws(() => parseUsdKrwRate(invalid));
+  }
+});
 
 test('expense totals preserve currencies and exclude cancellations, deleted rows and unknown amounts', () => {
   const rows = [

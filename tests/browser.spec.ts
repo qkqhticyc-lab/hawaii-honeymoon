@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 // Test map behavior against local geographic data, independent of a public tile server.
 test.beforeEach(async ({ page }) => {
   await page.route('https://tile.openstreetmap.org/**', route => route.abort());
+  await page.route('https://open.er-api.com/v6/latest/USD', route => route.fulfill({ json: { result: 'success', base_code: 'USD', rates: { KRW: 1500 }, time_last_update_unix: Math.floor(Date.now() / 1000), time_next_update_unix: Math.floor(Date.now() / 1000) + 86400 } }));
 });
 
 test('all days and views render without horizontal overflow or JavaScript errors', async ({ page }, testInfo) => {
@@ -486,6 +487,10 @@ test('owner expense editing preserves drafts on conflicts and supports add, dele
   await page.locator('.expense-form').getByLabel('통화', { exact: true }).selectOption('USD');
   await page.getByRole('button', { name: '경비 저장', exact: true }).click();
   await expect(page.locator('.expense-table')).toContainText('US$12.50');
+  await expect(page.locator('.expense-table tr').filter({ hasText: '추가 지출' }).locator('.amount')).toContainText('(약 ₩18,750)');
+  expect(rows[1].amount).toBe(12.5);
+  expect(rows[1].currency).toBe('USD');
+  await expect(page.getByRole('region', { name: '전체 경비 원화 환산', exact: true })).toContainText('약 ₩19,000');
   await page.getByRole('button', { name: '삭제 추가 지출', exact: true }).click();
   await expect(page.locator('.expense-table')).not.toContainText('추가 지출');
   await page.getByRole('button', { name: '삭제 취소', exact: true }).click();
@@ -523,5 +528,37 @@ test('owner can upload and view a protected image, then logout clears the viewer
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: '로그아웃', exact: true }).click();
   await expect(page.locator('.document-library')).toHaveCount(0);
+});
+
+
+test('USD remains visible during quote failure and refresh updates parenthesized KRW amounts and budget', async ({ page }, testInfo) => {
+  await mockPrivateSession(page, true);
+  let unavailable = true;
+  let rate = 1600;
+  await page.route('https://open.er-api.com/v6/latest/USD', route => unavailable ? route.fulfill({ status: 503, json: { result: 'error' } }) : route.fulfill({ json: { result: 'success', base_code: 'USD', rates: { KRW: rate }, time_last_update_unix: Math.floor(Date.now() / 1000), time_next_update_unix: Math.floor(Date.now() / 1000) + 86400 } }));
+  await page.route('**/rest/v1/travel_expenses**', route => route.fulfill({ json: [{ id: 'fx-test', category: '렌터카', subcategory: 'USD 예산 테스트', vendor: '', direction: '지출', amount: 20.25, currency: 'USD', payer: '', payment_method: '', payment_date: '', status: '예정', memo: '', sort_order: 1, revision: 1, deleted_at: null }] }));
+  await page.goto('./#view=expenses&date=2026-12-23');
+  await expect(page.locator('.exchange-rate-info')).toContainText('환율을 갱신하지 못했습니다');
+  await expect(page.locator('.expense-table .amount')).toContainText('US$20.25');
+  await expect(page.locator('.expense-table .amount')).toContainText('(환율 확인 필요)');
+  await expect(page.locator('.total-budget')).toContainText('환율 확인 필요');
+  unavailable = false;
+  await page.getByRole('button', { name: '환율 새로고침', exact: true }).click();
+  await expect(page.locator('.expense-table .amount')).toContainText('(약 ₩32,400)');
+  await expect(page.locator('.total-budget')).toContainText('약 ₩32,400');
+  await expect(page.locator('.exchange-rate-info')).toContainText('1 USD = 1,600원');
+  await expect(page.locator('.exchange-rate-info')).toContainText('한국시간 기준');
+  rate = 1500;
+  await page.getByRole('button', { name: '환율 새로고침', exact: true }).click();
+  await expect(page.locator('.expense-table .amount')).toContainText('(약 ₩30,375)');
+  await expect(page.locator('.expense-summary')).toContainText('US$20.25');
+  await page.reload();
+  await expect(page.locator('.expense-table .amount')).toContainText('(약 ₩30,375)');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `test-results/${testInfo.project.name}-usd-conversion.png`, fullPage: true });
+  unavailable = true;
+  await page.getByRole('button', { name: '환율 새로고침', exact: true }).click();
+  await expect(page.locator('.exchange-rate-info')).toContainText('표시된 기준 시각의 환율로 계산합니다');
+  await expect(page.locator('.expense-table .amount')).toContainText('(약 ₩30,375)');
 });
 
