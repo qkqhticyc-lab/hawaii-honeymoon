@@ -6,6 +6,22 @@ import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
 import { expenseTotals, type Expense } from '../src/privateTravel.ts';
 import { krwEquivalent, parseUsdKrwRate } from '../src/exchangeRate.ts';
+import { expensePatch, parseExpenseAmount } from '../src/useExpenseAutosave.ts';
+
+test('inline expense changes normalize amounts and patch only edited fields', () => {
+  const row = { amount: 100, currency: 'USD', subcategory: '교통', payer: 'A', memo: '' } as Expense;
+  assert.deepEqual(expensePatch(row, { amount: '100.00', payer: 'A' }).patch, {});
+  assert.deepEqual(expensePatch(row, { amount: '1,234.50', payer: 'B' }).patch, { amount: 1234.5, payer: 'B' });
+  assert.deepEqual(expensePatch(row, { memo: '메모' }).patch, { memo: '메모' });
+  assert.equal(parseExpenseAmount(''), null);
+  assert.equal(parseExpenseAmount('0'), 0);
+  assert.equal(parseExpenseAmount('.25'), 0.25);
+  assert.equal(parseExpenseAmount('12.'), 12);
+  for (const value of ['-1', '1.234', 'Infinity', 'NaN', '10000000000000']) assert.equal(parseExpenseAmount(value), undefined);
+  assert.ok(expensePatch(row, { amount: '-1' }).error);
+  assert.ok(expensePatch(row, { subcategory: ' ' }).error);
+  assert.ok(expensePatch(row, { currency: 'EUR' }).error);
+});
 
 test('USD conversion validates the latest quote and preserves incomplete totals when the quote is unavailable', () => {
   const payload = { result: 'success', base_code: 'USD', rates: { KRW: 1500.25 }, time_last_update_unix: 1795305752, time_next_update_unix: 1795393182 };

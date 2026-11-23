@@ -446,62 +446,140 @@ test('a signed-in account rejected by the server cannot load expenses or documen
   expect(reads).toBe(0);
 });
 
-test('owner expense editing preserves drafts on conflicts and supports add, delete, undo and logout', async ({ page }, testInfo) => {
+test('owner edits cells directly, serializes rapid changes and persists add/delete/undo', async ({ page }, testInfo) => {
   await mockPrivateSession(page, true);
-  let rows = [{ id: '00000000-0000-4000-8000-000000000002', category: '교통', subcategory: '테스트 교통', vendor: '테스트 업체', direction: '지출', amount: 100, currency: 'KRW', payer: '결제자 A', payment_method: '카드', payment_date: '2026-12-22', status: '결제 완료', memo: '', sort_order: 1, revision: 1, deleted_at: null as string | null }];
-  let conflict = false;
+  let rows = [{ id: '00000000-0000-4000-8000-000000000002', category: '교통', subcategory: '테스트 교통', vendor: '테스트 업체', direction: '지출', amount: 100 as number | null, currency: 'KRW', payer: '결제자 A', payment_method: '카드', payment_date: '2026-12-22', status: '결제 완료', memo: '', sort_order: 1, revision: 1, deleted_at: null as string | null }];
+  const patches: Record<string, unknown>[] = [];
+  let inFlight = 0, maximum = 0;
   await page.route('**/rest/v1/travel_expenses**', async route => {
-    const request = route.request();
-    if (request.method() === 'GET') return route.fulfill({ json: rows.filter(row => !row.deleted_at) });
+    const request = route.request(), url = new URL(request.url());
+    if (request.method() === 'GET') return route.fulfill({ json: url.searchParams.has('id') ? rows.find(row => `eq.${row.id}` === url.searchParams.get('id')) : rows.filter(row => !row.deleted_at) });
     const payload = request.postDataJSON();
-    if (request.method() === 'POST') {
-      const row = { ...rows[0], ...payload, id: '00000000-0000-4000-8000-000000000003', revision: 1, deleted_at: null };
-      rows.push(row); return route.fulfill({ json: row });
-    }
-    const url = new URL(request.url());
+    if (request.method() === 'POST') { const row = { ...rows[0], ...payload, revision: 1, deleted_at: null }; rows.push(row); return route.fulfill({ json: row }); }
     const row = rows.find(row => `eq.${row.id}` === url.searchParams.get('id'))!;
-    if (conflict || `eq.${row.revision}` !== url.searchParams.get('revision')) return route.fulfill({ status: 406, json: { message: 'Conflict' } });
+    if (`eq.${row.revision}` !== url.searchParams.get('revision')) return route.fulfill({ status: 406, json: { code: 'PGRST116', message: 'Conflict' } });
+    patches.push(payload); inFlight++; maximum = Math.max(maximum, inFlight);
+    if (patches.length === 1) await new Promise(resolve => setTimeout(resolve, 500));
     Object.assign(row, payload, { revision: row.revision + 1 });
-    return route.fulfill({ json: row });
+    inFlight--; return route.fulfill({ json: { ...row } });
   });
   await page.goto('./#view=expenses&date=2026-12-23');
-  await expect(page.locator('.expense-table')).toContainText('테스트 교통');
-  await page.getByRole('button', { name: '수정 테스트 교통', exact: true }).click();
-  await page.locator('.expense-form').getByLabel('금액', { exact: true }).fill('999');
-  await page.getByRole('button', { name: '수정 취소', exact: true }).click();
-  expect(rows[0].amount).toBe(100);
-  await page.getByRole('button', { name: '수정 테스트 교통', exact: true }).click();
-  await page.locator('.expense-form').getByLabel('금액', { exact: true }).fill('250');
-  conflict = true;
-  await page.getByRole('button', { name: '경비 저장', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('입력 내용은 유지');
-  await expect(page.locator('.expense-form').getByLabel('금액', { exact: true })).toHaveValue('250');
-  expect(rows[0].amount).toBe(100);
-  conflict = false;
-  await page.getByRole('button', { name: '경비 저장', exact: true }).click();
-  await expect(page.locator('.expense-form')).toHaveCount(0);
-  await expect(page.locator('.expense-table')).toContainText('₩250');
+  const first = page.locator('.expense-table tbody tr').first();
+  await expect(first.getByLabel('소분류 / 항목명', { exact: true })).toHaveValue('테스트 교통');
+  await expect(page.getByRole('button', { name: '수정 테스트 교통', exact: true })).toHaveCount(0);
+  await first.getByLabel('금액', { exact: true }).fill('250');
+  await first.getByLabel('통화', { exact: true }).selectOption('USD');
+  await expect.poll(() => patches.length).toBe(1);
+  await first.getByLabel('결제자', { exact: true }).selectOption('__custom__');
+  await first.getByLabel('새 결제자', { exact: true }).fill('결제자 B');
+  await first.getByLabel('새 결제자', { exact: true }).press('Enter');
+  await first.getByLabel('비고', { exact: true }).fill('빠른 연속 입력');
+  await first.getByLabel('비고', { exact: true }).press('Tab');
+  await expect(page.locator('.grid-savebar')).toContainText('모든 변경 저장 완료');
+  expect(maximum).toBe(1);
+  expect(rows[0]).toMatchObject({ amount: 250, currency: 'USD', payer: '결제자 B', memo: '빠른 연속 입력' });
+  await expect(first.locator('.converted-amount')).toContainText('(약 ₩375,000)');
+  await first.getByLabel('금액', { exact: true }).fill('999');
+  await first.getByLabel('금액', { exact: true }).press('Escape');
+  await expect(first.getByLabel('금액', { exact: true })).toHaveValue('250');
+  await expect(page.locator('.grid-savebar')).toContainText('모든 변경 저장 완료');
+  await page.reload();
+  await expect(first.getByLabel('결제자', { exact: true })).toHaveValue('결제자 B');
   await page.getByRole('button', { name: '경비 추가', exact: true }).click();
-  await page.locator('.expense-form').getByLabel('소분류 / 항목명', { exact: true }).fill('추가 지출');
-  await page.locator('.expense-form').getByLabel('금액', { exact: true }).fill('12.50');
-  await page.locator('.expense-form').getByLabel('통화', { exact: true }).selectOption('USD');
-  await page.getByRole('button', { name: '경비 저장', exact: true }).click();
-  await expect(page.locator('.expense-table')).toContainText('US$12.50');
-  await expect(page.locator('.expense-table tr').filter({ hasText: '추가 지출' }).locator('.amount')).toContainText('(약 ₩18,750)');
+  await expect(page.locator('.expense-table tbody tr')).toHaveCount(2);
+  const added = page.locator('.expense-table tbody tr').last();
+  await added.getByLabel('소분류 / 항목명', { exact: true }).fill('추가 지출');
+  await added.getByLabel('금액', { exact: true }).fill('12.50');
+  await added.getByLabel('통화', { exact: true }).selectOption('USD');
+  await added.getByLabel('금액', { exact: true }).press('Enter');
+  await expect(page.locator('.grid-savebar')).toContainText('모든 변경 저장 완료');
   expect(rows[1].amount).toBe(12.5);
   expect(rows[1].currency).toBe('USD');
-  await expect(page.getByRole('region', { name: '전체 경비 원화 환산', exact: true })).toContainText('약 ₩19,000');
+  await expect(added.locator('.converted-amount')).toContainText('(약 ₩18,750)');
   await page.getByRole('button', { name: '삭제 추가 지출', exact: true }).click();
-  await expect(page.locator('.expense-table')).not.toContainText('추가 지출');
+  await expect(page.locator('.expense-table tbody tr')).toHaveCount(1);
   await page.getByRole('button', { name: '삭제 취소', exact: true }).click();
-  await expect(page.locator('.expense-table')).toContainText('추가 지출');
-  await page.reload();
-  await expect(page.locator('.expense-table')).toContainText('₩250');
+  await expect(page.locator('.expense-table tbody tr')).toHaveCount(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: `test-results/${testInfo.project.name}-expenses.png`, fullPage: true });
+  await page.screenshot({ path: `test-results/${testInfo.project.name}-inline-expenses.png`, fullPage: true });
   await page.getByRole('button', { name: '로그아웃', exact: true }).click();
   await expect(page.getByRole('button', { name: 'GitHub로 로그인', exact: true })).toBeVisible();
   await expect(page.locator('.expense-table')).toHaveCount(0);
+});
+
+test('autosave confirms a lost response and protects conflicting and invalid edits', async ({ page }) => {
+  await mockPrivateSession(page, true);
+  const row = { id: 'save-test', category: '교통', subcategory: '저장 테스트', vendor: '업체', direction: '지출', amount: 100, currency: 'KRW', payer: 'A', payment_method: '', payment_date: '', status: '예정', memo: '', sort_order: 1, revision: 1, deleted_at: null };
+  let writes = 0;
+  let deletedOnServer = false;
+  const patches: Record<string, unknown>[] = [];
+  await page.route('**/rest/v1/travel_expenses**', async route => {
+    const request = route.request(), url = new URL(request.url());
+    if (request.method() === 'GET') {
+      if (deletedOnServer && url.searchParams.has('id')) return route.fulfill({ status: 406, json: { code: 'PGRST116', message: 'No rows' } });
+      return route.fulfill({ json: url.searchParams.has('id') ? { ...row } : deletedOnServer ? [] : [{ ...row }] });
+    }
+    if (deletedOnServer) return route.fulfill({ status: 406, json: { code: 'PGRST116', message: 'Deleted' } });
+    if (`eq.${row.revision}` !== url.searchParams.get('revision')) return route.fulfill({ status: 406, json: { code: 'PGRST116', message: 'Conflict' } });
+    writes++; patches.push(request.postDataJSON()); Object.assign(row, request.postDataJSON(), { revision: row.revision + 1 });
+    if (writes === 1) return route.abort('failed');
+    return route.fulfill({ json: { ...row } });
+  });
+  await page.goto('./#view=expenses&date=2026-12-23');
+  const entry = page.locator('.expense-table tbody tr').first();
+  await entry.getByLabel('금액', { exact: true }).fill('300');
+  await entry.getByLabel('금액', { exact: true }).press('Enter');
+  await expect(entry.locator('.row-save-state')).toHaveText('저장 실패');
+  await expect(entry.getByLabel('금액', { exact: true })).toHaveValue('300');
+  await entry.getByRole('button', { name: '다시 저장', exact: true }).click();
+  await expect(entry.locator('.row-save-state')).toHaveText('저장 완료');
+  expect(writes).toBe(1);
+  row.memo = '다른 기기 메모'; row.revision++;
+  await entry.getByLabel('금액', { exact: true }).fill('400');
+  await entry.getByLabel('금액', { exact: true }).press('Enter');
+  await expect(entry.locator('.row-save-state')).toHaveText('변경 충돌');
+  await expect(entry.getByLabel('금액', { exact: true })).toHaveValue('400');
+  await entry.getByRole('button', { name: '최신값 불러오기', exact: true }).click();
+  await expect(entry.getByLabel('금액', { exact: true })).toHaveValue('300');
+  await expect(entry.getByLabel('비고', { exact: true })).toHaveValue('다른 기기 메모');
+  await entry.getByLabel('금액', { exact: true }).fill('400');
+  await entry.getByLabel('금액', { exact: true }).press('Enter');
+  await expect(entry.locator('.row-save-state')).toHaveText('저장 완료');
+  expect(patches.at(-1)).toEqual({ amount: 400 });
+  expect(row.memo).toBe('다른 기기 메모');
+  await entry.getByLabel('금액', { exact: true }).fill('-1');
+  await entry.getByLabel('금액', { exact: true }).press('Enter');
+  await expect(entry.locator('.row-save-state')).toHaveText('입력 확인');
+  expect(row.amount).toBe(400);
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page.getByText('경비 변경이 아직 저장되지 않았습니다. 저장 완료를 확인한 뒤 로그아웃해주세요.', { exact: true })).toBeVisible();
+  await entry.getByRole('button', { name: '최신값 불러오기', exact: true }).click();
+  await expect(entry.getByLabel('금액', { exact: true })).toHaveValue('400');
+  deletedOnServer = true;
+  await entry.getByLabel('비고', { exact: true }).fill('삭제된 행에 대한 입력');
+  await entry.getByLabel('비고', { exact: true }).press('Enter');
+  await expect(entry.locator('.row-save-state')).toHaveText('변경 충돌');
+  await entry.getByRole('button', { name: '최신값 불러오기', exact: true }).click();
+  await expect(page.locator('.expense-table tbody tr')).toHaveCount(0);
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'GitHub로 로그인', exact: true })).toBeVisible();
+});
+
+test('leaving the expense tab flushes pending cell edits', async ({ page }) => {
+  await mockPrivateSession(page, true);
+  const row = { id: 'navigation-save', category: '교통', subcategory: '이동 저장', vendor: '', direction: '지출', amount: 100, currency: 'KRW', payer: '', payment_method: '', payment_date: '', status: '예정', memo: '', sort_order: 1, revision: 1, deleted_at: null };
+  await page.route('**/rest/v1/travel_expenses**', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: [{ ...row }] });
+    await new Promise(resolve => setTimeout(resolve, 200));
+    Object.assign(row, route.request().postDataJSON(), { revision: row.revision + 1 });
+    return route.fulfill({ json: { ...row } });
+  });
+  await page.goto('./#view=expenses&date=2026-12-23');
+  await page.locator('.expense-table').getByLabel('비고', { exact: true }).fill('메뉴 이동 직전 입력');
+  await page.locator('nav a').filter({ hasText: '날짜별 일정' }).click();
+  await expect.poll(() => row.memo).toBe('메뉴 이동 직전 입력');
+  await page.locator('nav a').filter({ hasText: '경비 정산' }).click();
+  await expect(page.locator('.expense-table').getByLabel('비고', { exact: true })).toHaveValue('메뉴 이동 직전 입력');
 });
 
 test('owner can upload and view a protected image, then logout clears the viewer', async ({ page }) => {
@@ -539,7 +617,8 @@ test('USD remains visible during quote failure and refresh updates parenthesized
   await page.route('**/rest/v1/travel_expenses**', route => route.fulfill({ json: [{ id: 'fx-test', category: '렌터카', subcategory: 'USD 예산 테스트', vendor: '', direction: '지출', amount: 20.25, currency: 'USD', payer: '', payment_method: '', payment_date: '', status: '예정', memo: '', sort_order: 1, revision: 1, deleted_at: null }] }));
   await page.goto('./#view=expenses&date=2026-12-23');
   await expect(page.locator('.exchange-rate-info')).toContainText('환율을 갱신하지 못했습니다');
-  await expect(page.locator('.expense-table .amount')).toContainText('US$20.25');
+  await expect(page.locator('.expense-table').getByLabel('금액', { exact: true })).toHaveValue('20.25');
+  await expect(page.locator('.expense-table').getByLabel('통화', { exact: true })).toHaveValue('USD');
   await expect(page.locator('.expense-table .amount')).toContainText('(환율 확인 필요)');
   await expect(page.locator('.total-budget')).toContainText('환율 확인 필요');
   unavailable = false;

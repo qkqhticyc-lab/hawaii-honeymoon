@@ -1,13 +1,15 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { privateTravel } from './privateTravel';
 
-type Access = { state: 'loading' | 'signed-out' | 'owner' | 'denied' | 'error'; userId?: string; error: string; login: () => Promise<void>; logout: () => Promise<void>; retry: () => void };
+type Access = { state: 'loading' | 'signed-out' | 'owner' | 'denied' | 'error'; userId?: string; error: string; login: () => Promise<void>; logout: () => Promise<void>; retry: () => void; registerUnsavedCheck: (check: () => boolean) => () => void };
 const AccessContext = createContext<Access | null>(null);
 
 export function PrivateAccessProvider({ children }: { children: ReactNode }) {
   const [access, setAccess] = useState<Pick<Access, 'state' | 'userId' | 'error'>>({ state: 'loading', error: '' });
   const [attempt, setAttempt] = useState(0);
+  const unsavedChecks = useRef(new Set<() => boolean>());
+  const registerUnsavedCheck = useCallback((check: () => boolean) => { unsavedChecks.current.add(check); return () => { unsavedChecks.current.delete(check); }; }, []);
   useEffect(() => {
     let active = true;
     let revision = 0;
@@ -45,11 +47,12 @@ export function PrivateAccessProvider({ children }: { children: ReactNode }) {
     } catch { setAccess({ state: 'error', error: 'GitHub 로그인을 시작하지 못했습니다. 다시 시도해주세요.' }); }
   }
   async function logout() {
+    if ([...unsavedChecks.current].some(check => check())) { setAccess(previous => ({ ...previous, error: '경비 변경이 아직 저장되지 않았습니다. 저장 완료를 확인한 뒤 로그아웃해주세요.' })); return; }
     const { error } = await privateTravel.auth.signOut();
     if (error) { setAccess(prev => ({ ...prev, error: '로그아웃하지 못했습니다. 다시 시도해주세요.' })); return; }
     setAccess({ state: 'signed-out', error: '' });
   }
-  return <AccessContext.Provider value={{ ...access, login, logout, retry: () => setAttempt(n => n + 1) }}>{children}</AccessContext.Provider>;
+  return <AccessContext.Provider value={{ ...access, login, logout, retry: () => setAttempt(n => n + 1), registerUnsavedCheck }}>{children}</AccessContext.Provider>;
 }
 export function usePrivateAccess() {
   const access = useContext(AccessContext);
