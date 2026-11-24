@@ -333,7 +333,7 @@ test('confirmed sunset pickup is distinct from shooting time and pending Oahu en
     assert.ok(task.note!.includes(phrase), phrase);
   }
   assert.match(tasks.find(t => t.id === 'hanauma')!.note!, /하와이 12\/21 07:00 = 한국 12\/22 02:00/);
-  assert.match(tasks.find(t => t.id === 'diamond-head-entry')!.note!, /06:00~08:00/);
+  assert.match(tasks.find(t => t.id === 'diamond-head-entry')!.note!, /08:00~10:00/);
   for (const [hawaii, korea] of [['2026-12-14T07:30:00-10:00', '2026-12-15T02:30:00+09:00'], ['2026-12-21T07:00:00-10:00', '2026-12-22T02:00:00+09:00']]) {
     assert.equal(Date.parse(hawaii), Date.parse(korea));
   }
@@ -363,15 +363,15 @@ test('Hana Taxi confirmations distinguish flight arrival from pickup and map bot
 });
 
 
-test('Diamond Head ticket confirms the early slot and preserves transport uncertainty', () => {
+test('Diamond Head ticket confirms the corrected slot and preserves transport uncertainty', () => {
   const day = days.find(day => day.date === '2026-12-24')!;
   const entry = day.events.find(event => event.place === 'diamondPark')!;
-  assert.deepEqual([entry.time, entry.status], ['06:00~08:00 · 예약', '확정']);
+  assert.deepEqual([entry.time, entry.status], ['08:00~10:00 · 예약', '확정']);
   assert.match(entry.notes.join(' '), /주차\+입장/);
   assert.match(entry.notes.join(' '), /US\$20 카드 결제 완료/);
-  assert.match(entry.notes.join(' '), /06:00~06:30/);
+  assert.match(entry.notes.join(' '), /08:00~08:30/);
   assert.match(entry.notes.join(' '), /12\/23 반납/);
-  assert.match(day.events[0].time, /05:20~05:30/);
+  assert.match(day.events[0].time, /07:20~07:30/);
   assert.equal(day.events[0].status, '계획');
   assert.equal(tasks.find(task => task.id === 'diamond-head-entry')!.done, true);
   assert.ok(!JSON.stringify(day).includes('입장권 2인 미예약'));

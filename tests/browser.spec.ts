@@ -287,7 +287,7 @@ test('Oahu dates show the replacement itinerary and matching main map routes', a
 
   await page.getByRole('button', { name: /12. 24.*목요일/ }).click();
   const hike = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: 'Diamond Head State Monument 입장 · 정상 등산', exact: true }) });
-  await expect(hike).toContainText('06:00~08:00 · 예약');
+  await expect(hike).toContainText('08:00~10:00 · 예약');
   await expect(hike.locator('.badge')).toHaveText('확정');
   await hike.locator('summary').click();
   await expect(hike.locator('details')).toContainText('US$20 카드 결제 완료');
@@ -390,7 +390,7 @@ test('confirmed sunset pickup, photo route and pending entry reservations are vi
   await expect(page.locator('#task-photo').locator('..')).toContainText('16:45 카라이 LXR 픽업');
   await expect(page.locator('#task-hanauma').locator('..')).toContainText('하와이 12/21 07:00 = 한국 12/22 02:00');
   await expect(page.locator('#task-hanauma').locator('..').getByRole('link', { name: /공식 예약/ })).toHaveAttribute('href', 'https://pros.hnl.info/hanauma-bay');
-  await expect(page.locator('#task-diamond-head-entry').locator('..')).toContainText('06:00~08:00');
+  await expect(page.locator('#task-diamond-head-entry').locator('..')).toContainText('08:00~10:00');
   await expect(page.locator('#task-diamond-head-entry').locator('..').getByRole('link', { name: /공식 예약 안내/ })).toHaveAttribute('href', 'https://gostateparks.hawaii.gov/diamondhead/about');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

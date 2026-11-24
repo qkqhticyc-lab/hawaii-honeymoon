@@ -93,7 +93,7 @@ const hanaTaxi = {
 export const transport = [
   { title: '마우이 · Hertz K5 또는 동급', status: '확정' as Status, detail: 'OGG 인수 12/12 14:00 → 반납 12/17 11:30 · D0 / SCAR', notes: ['과거 예약 확인 예상 총액 US$218.50 · 현장 후불 (실시간 판매가 아님)', '28인치 1개 + 26인치 1개 캐리어', '기존 더 비싼 예약의 중복 취소 여부 확인 필요'] },
   { title: `빅아일랜드 · ${konaRental.vehicle}`, status: '확정' as Status, detail: 'KOA Hertz 인수 12/17 15:00 → 같은 지점 반납 12/21 13:00 · 하와이 현지시간', notes: [konaRental.price, konaRental.office, konaRental.hours, konaRental.doors, '마우나케아 정상 구간 운행 허용과 보험·면책 범위는 별도 확인 필요'] },
-  { title: '오아후 · 12/24 등산 택시', status: '계획' as Status, detail: '12/24 등산 택시 왕복 계획', notes: ['05:20~05:30 호텔 출발 목표 · 입장권 2인 06:00~08:00 예약 확정. 현재 렌터카는 12/23 13:00 반납이므로 12/24에는 없음. 주차 포함 티켓과 택시 이동 방식 확인 필요.'] },
+  { title: '오아후 · 12/24 등산 택시', status: '계획' as Status, detail: '12/24 등산 택시 왕복 계획', notes: ['07:20~07:30 호텔 출발 목표 · 입장권 2인 08:00~10:00 예약 확정. 현재 렌터카는 12/23 13:00 반납이므로 12/24에는 없음. 주차 포함 티켓과 택시 이동 방식 확인 필요.'] },
   { title: `오아후 · Hertz ${oahuRental.vehicle}`, status: '확정' as Status, detail: oahuRental.detail, notes: [oahuRental.office, oahuRental.price, oahuRental.hours, '12/22 카라이 야간 주차 위치·비용 확인. 12/23 하나우마베이 방문 후 반납 계획.'] },
   { title: '오아후 · 하나택시 공항 왕복', status: '확정' as Status, detail: '12/21 HNL → 카라이 (WN2269 16:30 도착 기준) / 12/25 11:00 카라이 → HNL · 하와이 현지시간', notes: [...hanaTaxi.arrivalNotes, ...hanaTaxi.departureNotes] },
 ];
@@ -116,7 +116,7 @@ const photoNotes = [
 ];
 const hanaumaNote = '12/23 입장권 2인 미예약. 예약 오픈 하와이 12/21 07:00 = 한국 12/22 02:00. 08:00 전후 입장은 목표이며 실제 예약 슬롯에 따라 조정합니다. 입장 예약에 주차 자리는 포함되지 않습니다.';
 const oahuHertzLink: ReferenceLink = { label: 'Hertz 와이키키 지점 안내', url: 'https://www.hertz.com/us/en/location/unitedstates/hawaii/honolulu/hnlc10' };
-const diamondHeadNote = '12/24 06:00~08:00 하와이 현지시간 · 2인 예약 확정 · Parking and entry(주차+입장). US$20 카드 결제 완료(사용자 확인). 06:00~06:30 도착 계획, 주차 이용 시 08:00까지 출차. QR 티켓을 휴대폰 또는 인쇄본으로 제시. 원본 PDF와 티켓 이미지는 숙소·항공 탭의 비공개 예약자료에서 확인. 현재 렌터카는 12/23 반납이므로 주차 포함 상품과 택시 이동 방식은 확인 필요.';
+const diamondHeadNote = '12/24 08:00~10:00 하와이 현지시간 · 2인 예약 확정 · Parking and entry(주차+입장). US$20 카드 결제 완료(사용자 확인). 주차 이용 시 예약 시작 후 첫 30분(08:00~08:30) 이내 도착. QR 티켓을 휴대폰 또는 인쇄본으로 제시. 원본 PDF와 티켓 이미지는 숙소·항공 탭의 비공개 예약자료에서 확인. 현재 렌터카는 12/23 반납이므로 주차 포함 상품과 택시 이동 방식은 확인 필요.';
 export type Event = { time: string; title: string; place: PlaceId; status: Status; notes: string[]; links?: ReferenceLink[]; milestone?: string; flightId?: string; kind?: '예비' };
 export type Route = { mode: '도보' | '차량' | '비행기' | '투어 차량' | '한인택시' | '보트' | '교통편 미정'; stops: PlaceId[]; note?: string };
 export type Day = { date: string; island: string; title: string; intro: string; departureStay?: Stay['id']; events: Event[]; routes: Route[]; alert?: string };
@@ -224,15 +224,15 @@ export const days: Day[] = [
       { mode: '도보', stops: ['oahuHertz', 'kalai'], note: '차량 반납 후 호텔 복귀' },
       { mode: '차량', stops: ['kalai', 'photo'], note: '16:45 카라이에서 스튜디오 픽업 · 촬영지는 상품 안내 기준 · 복귀 교통은 작가에게 확인' },
     ] },
-  { date: '2026-12-24', island: '오아후', title: '정상에서 시작하는 크리스마스이브', intro: '06:00~08:00 다이아몬드헤드 2인 예약 확정. 이른 등산 후 충분히 쉬고 16:45 오키즈에서 크리스마스이브를 함께해요.', events: [
-      e('05:20~05:30 · 출발 목표', '카라이에서 택시 또는 차량 호출로 출발', 'kalai', '계획', ['06:00~06:30 도착을 위한 출발 목표. 새벽 배차·실제 승하차 지점에 따라 조정. 12/23 렌터카 반납 일정은 유지.']),
-      e('06:00~08:00 · 예약', 'Diamond Head State Monument 입장 · 정상 등산', 'diamondPark', '확정', [diamondHeadNote, '등산은 예약 시간 안에서 진행하는 계획. 정확한 입구·트레일헤드 좌표와 택시 승하차 지점 확인 필요.'], { links: [diamondHeadLink] }),
-      e('08:30~09:00 · 복귀 목표', '카라이 복귀 · 조식 · 휴식', 'kalai'),
+  { date: '2026-12-24', island: '오아후', title: '정상에서 시작하는 크리스마스이브', intro: '08:00~10:00 다이아몬드헤드 2인 예약 확정. 오전 등산 후 충분히 쉬고 16:45 오키즈에서 크리스마스이브를 함께해요.', events: [
+      e('07:20~07:30 · 출발 목표', '카라이에서 택시 또는 차량 호출로 출발', 'kalai', '계획', ['08:00~08:30 도착을 위한 출발 목표. 당일 배차·실제 승하차 지점에 따라 조정. 12/23 렌터카 반납 일정은 유지.']),
+      e('08:00~10:00 · 예약', 'Diamond Head State Monument 입장 · 정상 등산', 'diamondPark', '확정', [diamondHeadNote, '등산은 예약 시간 안에서 진행하는 계획. 정확한 입구·트레일헤드 좌표와 택시 승하차 지점 확인 필요.'], { links: [diamondHeadLink] }),
+      e('10:30~11:00 · 복귀 목표', '카라이 복귀 · 조식 · 휴식', 'kalai'),
       e('오전 늦게~오후 · 계획', '와이키키 산책 · 점심 · 휴식', 'waikiki'),
       e('16:30 · 호텔 출발 목표', '호텔에서 오키즈로 도보 출발', 'kalai'),
       e('16:45 · 예약', 'Halekulani Orchids · 크리스마스이브 뷔페', 'orchids', '확정', ['2인 예약 · 사용자가 확인한 총액 약 US$374'], { milestone: '오키즈 · 2인 예약' }),
       e('저녁 · 계획', '산책 · 귀국 짐 정리', 'kalai'),
-    ], routes: [{ mode: '차량', stops: ['kalai', 'diamondPark', 'kalai'], note: '05:20~05:30 출발 목표 · 06:00~08:00 2인 입장 예약. 택시 또는 차량 호출 왕복 계획. 주차 포함 티켓이지만 12/24 렌터카는 없으므로 이동 방식 확인 필요.' }, { mode: '도보', stops: ['kalai', 'orchids', 'kalai'], note: '16:30 호텔 출발 목표 · 16:45 오키즈 예약' }] },
+    ], routes: [{ mode: '차량', stops: ['kalai', 'diamondPark', 'kalai'], note: '07:20~07:30 출발 목표 · 08:00~10:00 2인 입장 예약. 택시 또는 차량 호출 왕복 계획. 주차 포함 티켓이지만 12/24 렌터카는 없으므로 이동 방식 확인 필요.' }, { mode: '도보', stops: ['kalai', 'orchids', 'kalai'], note: '16:30 호텔 출발 목표 · 16:45 오키즈 예약' }] },
   { date: '2026-12-25', island: '오아후 → 한국', title: '마할로, 하와이', intro: '11:00 하나택시 호텔 픽업, 14:25 대한항공 출발. 오늘 밤은 귀국 항공편에서 보내요.', departureStay: 'kalai', events: [
     e('오전 · 계획', '조식 · 짐 정리 · 체크아웃', 'kalai'),
     e('10:50~10:55 · 대기 목표', '카라이 로비에서 픽업 대기', 'kalai'),
