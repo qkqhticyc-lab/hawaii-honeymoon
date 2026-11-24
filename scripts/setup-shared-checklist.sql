@@ -16,7 +16,7 @@ create policy trip_checklist_public_update on public.trip_checklist for update t
 insert into public.trip_checklist (task_id, checked) values
   ('bookings', true), ('k5', true), ('sunrise', true), ('orchids', true),
   ('esta', false), ('transfer', false), ('molokini', true), ('jeep', true),
-  ('maunakea', false), ('oahu-day-rental', true), ('diamond-head-entry', false),
+  ('maunakea', false), ('oahu-day-rental', true), ('diamond-head-entry', true),
   ('hanauma', false), ('photo', true), ('diamond', true), ('email', true),
   ('email-kalai', false), ('credit', false), ('entry', false), ('taxi', true),
   ('insurance', false), ('license', false), ('sim', false), ('gear', false),

@@ -119,12 +119,12 @@ test('flight instants preserve actual chronology and supplied durations', () => 
   assert.equal((Date.parse(flights[1].departure) - Date.parse(flights[0].arrival)) / 60000, 147);
 });
 test('planning remains planning; only known reservations are confirmed', () => {
-  for (const [date, title] of [['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-23', '하나우마베이 스노클링'], ['2026-12-24', 'Diamond Head State Monument 입장 · 정상 등산']]) {
+  for (const [date, title] of [['2026-12-18', '조건 확인 후 정상 이동 · 일몰 관람'], ['2026-12-23', '하나우마베이 스노클링']]) {
     assert.equal(days.find(d => d.date === date)!.events.find(e => e.title === title)!.status, '계획');
   }
   assert.equal(days[2].events.find(e => e.place === 'haleakala')!.status, '확정');
   assert.equal(days[12].events.find(e => e.place === 'orchids')!.status, '확정');
-  assert.equal(tasks.filter(t => t.done).length, 11);
+  assert.equal(tasks.filter(t => t.done).length, 12);
   assert.equal(tasks.length, 25);
   assert.equal(tasks.find(t => t.id === 'diamond')!.done, true);
 });
@@ -253,14 +253,15 @@ test('Oahu main routes match day rental, Hanauma return and separate hiking/dinn
 
 test('retired tour task is inactive while old browser records and new pending reservations coexist', () => {
   assert.ok(!tasks.some(t => t.id === 'tour'));
-  for (const id of ['diamond-head-entry', 'hanauma']) assert.equal(tasks.find(t => t.id === id)!.done, false);
+  assert.equal(tasks.find(t => t.id === 'hanauma')!.done, false);
+  assert.equal(tasks.find(t => t.id === 'diamond-head-entry')!.done, true);
   const migrated = loadChecklist('{"tour":true,"hanauma":true,"photo":true,"bookings":false,"diamond":true}');
   assert.equal(migrated.hanauma, true);
   assert.equal(migrated.photo, true);
   assert.equal(migrated.bookings, false);
   assert.equal(migrated.diamond, true);
   assert.equal(migrated['oahu-day-rental'], true);
-  assert.equal(migrated['diamond-head-entry'], false);
+  assert.equal(migrated['diamond-head-entry'], true);
   assert.equal(migrated.tour, undefined);
   const oahu = transport[2];
   assert.ok(!/조인|투어 차량/.test(JSON.stringify(oahu)));
@@ -332,7 +333,7 @@ test('confirmed sunset pickup is distinct from shooting time and pending Oahu en
     assert.ok(task.note!.includes(phrase), phrase);
   }
   assert.match(tasks.find(t => t.id === 'hanauma')!.note!, /하와이 12\/21 07:00 = 한국 12\/22 02:00/);
-  assert.match(tasks.find(t => t.id === 'diamond-head-entry')!.note!, /하와이 11\/24부터/);
+  assert.match(tasks.find(t => t.id === 'diamond-head-entry')!.note!, /06:00~08:00/);
   for (const [hawaii, korea] of [['2026-12-14T07:30:00-10:00', '2026-12-15T02:30:00+09:00'], ['2026-12-21T07:00:00-10:00', '2026-12-22T02:00:00+09:00']]) {
     assert.equal(Date.parse(hawaii), Date.parse(korea));
   }
@@ -359,4 +360,20 @@ test('Hana Taxi confirmations distinguish flight arrival from pickup and map bot
   }
   assert.equal(tasks.find(t => t.id === 'taxi')!.done, true);
   assert.equal(loadChecklist(null).taxi, true);
+});
+
+
+test('Diamond Head ticket confirms the early slot and preserves transport uncertainty', () => {
+  const day = days.find(day => day.date === '2026-12-24')!;
+  const entry = day.events.find(event => event.place === 'diamondPark')!;
+  assert.deepEqual([entry.time, entry.status], ['06:00~08:00 · 예약', '확정']);
+  assert.match(entry.notes.join(' '), /주차\+입장/);
+  assert.match(entry.notes.join(' '), /US\$20 카드 결제 완료/);
+  assert.match(entry.notes.join(' '), /06:00~06:30/);
+  assert.match(entry.notes.join(' '), /12\/23 반납/);
+  assert.match(day.events[0].time, /05:20~05:30/);
+  assert.equal(day.events[0].status, '계획');
+  assert.equal(tasks.find(task => task.id === 'diamond-head-entry')!.done, true);
+  assert.ok(!JSON.stringify(day).includes('입장권 2인 미예약'));
+  assert.match(day.routes[0].note!, /주차 포함/);
 });

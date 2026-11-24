@@ -287,10 +287,11 @@ test('Oahu dates show the replacement itinerary and matching main map routes', a
 
   await page.getByRole('button', { name: /12. 24.*목요일/ }).click();
   const hike = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: 'Diamond Head State Monument 입장 · 정상 등산', exact: true }) });
-  await expect(hike).toContainText('08:00~10:00 · 목표');
-  await expect(hike.locator('.badge')).toHaveText('계획');
+  await expect(hike).toContainText('06:00~08:00 · 예약');
+  await expect(hike.locator('.badge')).toHaveText('확정');
   await hike.locator('summary').click();
-  await expect(hike.locator('details')).toContainText('입장권 2인 미예약');
+  await expect(hike.locator('details')).toContainText('US$20 카드 결제 완료');
+  await expect(hike.locator('details')).toContainText('Parking and entry');
   const parkMap = hike.getByRole('link', { name: /다이아몬드헤드 공원 입구·트레일헤드 Google Maps 검색/ });
   expect(new URL((await parkMap.getAttribute('href'))!).searchParams.get('query')).toBe('Diamond Head State Monument');
   const dinner = page.locator('.timeline > li').filter({ has: page.getByRole('heading', { name: 'Halekulani Orchids · 크리스마스이브 뷔페', exact: true }) });
@@ -318,7 +319,7 @@ test('Oahu transport summary and pending tasks match while legacy tour checks ar
   await page.goto('./#view=prepare&date=2026-12-22');
   await expect(page.getByLabel('오아후 조인 투어 예약 확인', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('오아후 Hertz 렌터카 예약', { exact: true })).toBeChecked();
-  await expect(page.getByLabel('12/24 다이아몬드헤드 입장권 2인', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('12/24 다이아몬드헤드 입장권 2인', { exact: true })).toBeChecked();
   await expect(page.getByLabel('하나우마베이 입장권 2인 예약', { exact: true })).toBeChecked();
   await expect(page.getByLabel('커플 스냅 예약', { exact: true })).toBeChecked();
   expect(await page.evaluate(() => localStorage.getItem('hawaii-honeymoon.checklist.v1'))).toBe(stored);
@@ -385,11 +386,11 @@ test('confirmed sunset pickup, photo route and pending entry reservations are vi
   await page.goto('./#view=prepare&date=2026-12-23');
   await expect(page.locator('#task-photo')).toBeChecked();
   await expect(page.locator('#task-hanauma')).not.toBeChecked();
-  await expect(page.locator('#task-diamond-head-entry')).not.toBeChecked();
+  await expect(page.locator('#task-diamond-head-entry')).toBeChecked();
   await expect(page.locator('#task-photo').locator('..')).toContainText('16:45 카라이 LXR 픽업');
   await expect(page.locator('#task-hanauma').locator('..')).toContainText('하와이 12/21 07:00 = 한국 12/22 02:00');
   await expect(page.locator('#task-hanauma').locator('..').getByRole('link', { name: /공식 예약/ })).toHaveAttribute('href', 'https://pros.hnl.info/hanauma-bay');
-  await expect(page.locator('#task-diamond-head-entry').locator('..')).toContainText('하와이 11/24부터');
+  await expect(page.locator('#task-diamond-head-entry').locator('..')).toContainText('06:00~08:00');
   await expect(page.locator('#task-diamond-head-entry').locator('..').getByRole('link', { name: /공식 예약 안내/ })).toHaveAttribute('href', 'https://gostateparks.hawaii.gov/diamondhead/about');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
