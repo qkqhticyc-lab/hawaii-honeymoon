@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { privateTravel, type Expense, type ExpenseInput } from './privateTravel';
+import { privateTravel, paymentPlans, type Expense, type ExpenseInput } from './privateTravel';
 import { usePrivateAccess } from './PrivateAccess';
 
 export type ExpenseField = Exclude<keyof ExpenseInput, 'sort_order'>;
@@ -28,6 +28,7 @@ export function expensePatch(row: Expense, draft: ExpenseDraft): { patch: Partia
     if (field === 'currency' && !['KRW', 'USD'].includes(raw)) return { patch: {}, error: '통화를 선택해주세요.' };
     if (field === 'status' && !['예정', '결제 완료', '취소'].includes(raw)) return { patch: {}, error: '상태를 선택해주세요.' };
     if (field === 'direction' && !['지출', '수입'].includes(raw)) return { patch: {}, error: '지출 또는 수입을 선택해주세요.' };
+    if (field === 'payment_plan' && !paymentPlans.includes(raw as Expense['payment_plan'])) return { patch: {}, error: '결제구분을 선택해주세요.' };
     const saved = field === 'amount' && row.amount !== null ? Number(row.amount) : row[field];
     if (value !== saved) patch[field] = value;
   }

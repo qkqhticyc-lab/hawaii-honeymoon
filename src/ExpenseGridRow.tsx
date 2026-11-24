@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Expense } from './privateTravel';
 import type { UsdKrwRate } from './exchangeRate';
-import { money } from './privateTravel';
+import { money, paymentPlan, paymentPlans } from './privateTravel';
 import type { ExpenseDraft, ExpenseField, RowSaveState } from './useExpenseAutosave';
 
 type Props = {
@@ -26,6 +26,7 @@ export default function ExpenseGridRow({ row, draft, state, rate, payers, focus,
     <td data-label="소분류 / 업체"><div className="expense-cell expense-description"><input ref={nameInput} aria-label="소분류 / 항목명" value={value('subcategory')} maxLength={200} disabled={disabled} onChange={event => change('subcategory', event.target.value)} onBlur={flush} onKeyDown={event => keys(event, 'subcategory')} />{input('vendor', '업체', 200)}<select aria-label="지출 / 수입" value={value('direction')} disabled={disabled} onChange={event => change('direction', event.target.value, true)}><option>지출</option><option>수입</option></select></div></td>
     <td data-label="금액" className="amount"><div className="expense-cell"><div className="amount-editor"><select aria-label="통화" value={value('currency')} disabled={disabled} onChange={event => change('currency', event.target.value, true)}><option>KRW</option><option>USD</option></select><input aria-label="금액" type="text" inputMode="decimal" value={value('amount')} disabled={disabled} placeholder="미입력" onChange={event => change('amount', event.target.value)} onBlur={flush} onKeyDown={event => keys(event, 'amount')} /></div>{row.currency === 'USD' && row.amount !== null && <small className="converted-amount">({rate ? `약 ${money(Math.round(row.amount * rate.value), 'KRW')}` : '환율 확인 필요'})</small>}</div></td>
     <td data-label="결제자"><div className="expense-cell"><PayerSelect value={value('payer')} options={payers} disabled={disabled} onChange={payer => change('payer', payer, true)} /></div></td>
+    <td data-label="결제구분"><div className="expense-cell"><select aria-label="결제구분" className={`payment-plan ${paymentPlan(row) === '현지 현금' ? 'cash' : ''}`} value={draft.payment_plan ?? paymentPlan(row)} disabled={disabled} onChange={event => change('payment_plan', event.target.value, true)} onKeyDown={event => keys(event, 'payment_plan')}>{paymentPlans.map(plan => <option key={plan}>{plan}</option>)}</select></div></td>
     <td data-label="결제수단"><div className="expense-cell">{input('payment_method', '결제수단', 200)}</div></td>
     <td data-label="결제일자"><div className="expense-cell">{input('payment_date', '결제일자', 100)}</div></td>
     <td data-label="상태"><div className="expense-cell"><select aria-label="상태" value={value('status')} className={`status-select ${row.status === '결제 완료' ? 'paid' : ''}`} disabled={disabled} onChange={event => change('status', event.target.value, true)}><option>예정</option><option>결제 완료</option><option>취소</option></select></div></td>

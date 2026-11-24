@@ -8,11 +8,14 @@ export const privateTravel = createClient(
 export const DOCUMENT_BUCKET = 'travel-private';
 export const documentTypes = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
 export const documentLimit = 20 * 1024 * 1024;
+export const paymentPlans = ['확인 필요', '현지 현금', '현지 카드', '현지 결제 · 수단 확인', '사전·온라인 결제'] as const;
+export type PaymentPlan = typeof paymentPlans[number];
 
 export type Expense = {
   id: string; category: string; subcategory: string; vendor: string;
   direction: '지출' | '수입'; amount: number | null; currency: 'KRW' | 'USD';
   payer: string; payment_method: string; payment_date: string;
+  payment_plan: PaymentPlan;
   status: '예정' | '결제 완료' | '취소'; memo: string; sort_order: number;
   revision: number; deleted_at: string | null;
 };
@@ -30,6 +33,22 @@ export function expenseTotals(rows: Expense[]) {
     totals[row.currency][field] = Math.round((totals[row.currency][field] + Number(row.amount)) * 100) / 100;
   }
   return totals;
+}
+export function paymentPlan(row: Expense): PaymentPlan {
+  return paymentPlans.includes(row.payment_plan) ? row.payment_plan : '확인 필요';
+}
+export function usdPaymentTotals(rows: Expense[]) {
+  const total = () => ({ amount: 0, count: 0, unknownAmounts: 0 });
+  const groups = { cash: total(), card: total(), online: total(), unconfirmed: total() };
+  for (const row of rows) {
+    if (row.deleted_at || row.currency !== 'USD' || row.direction !== '지출' || row.status !== '예정') continue;
+    const plan = paymentPlan(row);
+    const group = groups[plan === '현지 현금' ? 'cash' : plan === '현지 카드' ? 'card' : plan === '사전·온라인 결제' ? 'online' : 'unconfirmed'];
+    group.count++;
+    if (row.amount === null) group.unknownAmounts++;
+    else group.amount = Math.round((group.amount + Number(row.amount)) * 100) / 100;
+  }
+  return groups;
 }
 export function money(value: number, currency: 'KRW' | 'USD') {
   return new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: currency === 'KRW' ? 0 : 2 }).format(value);

@@ -495,6 +495,17 @@ test('owner edits cells directly, serializes rapid changes and persists add/dele
   await expect(page.locator('.grid-savebar')).toContainText('모든 변경 저장 완료');
   expect(rows[1].amount).toBe(12.5);
   expect(rows[1].currency).toBe('USD');
+  await expect(added.getByLabel('결제구분', { exact: true })).toHaveValue('확인 필요');
+  await added.getByLabel('결제구분', { exact: true }).selectOption('현지 현금');
+  await expect(page.locator('.grid-savebar')).toContainText('모든 변경 저장 완료');
+  await expect(page.locator('.payment-total.cash')).toContainText('US$12.50');
+  await page.reload();
+  await expect(added.getByLabel('결제구분', { exact: true })).toHaveValue('현지 현금');
+  await page.getByLabel('결제구분 필터', { exact: true }).selectOption('현지 현금');
+  await expect(page.locator('.expense-table tbody tr')).toHaveCount(1);
+  await expect(page.locator('.expense-table').getByLabel('소분류 / 항목명', { exact: true })).toHaveValue('추가 지출');
+  await page.getByLabel('결제구분 필터', { exact: true }).selectOption('전체');
+  await expect(page.locator('.expense-table tbody tr')).toHaveCount(2);
   await expect(added.locator('.converted-amount')).toContainText('(약 ₩18,750)');
   await page.getByRole('button', { name: '삭제 추가 지출', exact: true }).click();
   await expect(page.locator('.expense-table tbody tr')).toHaveCount(1);

@@ -30,6 +30,7 @@ create table public.travel_expenses (
   currency text not null default 'KRW' check (currency in ('KRW','USD')),
   payer text not null default '',
   payment_method text not null default '',
+  payment_plan text not null default '확인 필요' check (payment_plan in ('확인 필요','현지 현금','현지 카드','현지 결제 · 수단 확인','사전·온라인 결제')),
   payment_date text not null default '',
   status text not null default '예정' check (status in ('예정','결제 완료','취소')),
   memo text not null default '',

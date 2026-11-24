@@ -4,7 +4,7 @@ import { days, flights, places, stays, tasks, transport } from '../src/data/trip
 import { dateLabel, defaultDate, directionUrl, flightLocal, loadChecklist, mapUrl, milestones, nightStay, readLocation, STORAGE_KEY } from '../src/lib.ts';
 import { mapLocations } from '../src/data/mapLocations.ts';
 import { coordinate, mapSegments, mapStops } from '../src/mapModel.ts';
-import { expenseTotals, type Expense } from '../src/privateTravel.ts';
+import { expenseTotals, usdPaymentTotals, paymentPlan, type Expense } from '../src/privateTravel.ts';
 import { krwEquivalent, parseUsdKrwRate } from '../src/exchangeRate.ts';
 import { expensePatch, parseExpenseAmount } from '../src/useExpenseAutosave.ts';
 
@@ -34,6 +34,24 @@ test('USD conversion validates the latest quote and preserves incomplete totals 
   for (const invalid of [null, {}, { ...payload, result: 'error' }, { ...payload, base_code: 'KRW' }, { ...payload, rates: { KRW: 0 } }, { ...payload, rates: { KRW: '1500' } }, { ...payload, time_last_update_unix: 'bad' }]) {
     assert.throws(() => parseUsdKrwRate(invalid));
   }
+});
+
+test('cash preparation separates unpaid USD from cards, online charges and unconfirmed payments', () => {
+  const row = { currency: 'USD', amount: 0.1, status: '예정', direction: '지출', payment_plan: '현지 현금', deleted_at: null } as Expense;
+  const rows = [row, { ...row, amount: 0.2 }, { ...row, amount: null },
+    { ...row, amount: 30, payment_plan: '현지 카드' }, { ...row, amount: 40, payment_plan: '사전·온라인 결제' },
+    { ...row, amount: 320, payment_plan: '현지 결제 · 수단 확인' }, { ...row, amount: 50, payment_plan: undefined },
+    { ...row, amount: 999, currency: 'KRW' }, { ...row, amount: 999, status: '결제 완료' },
+    { ...row, amount: 999, status: '취소' }, { ...row, amount: 999, direction: '수입' },
+    { ...row, amount: 999, deleted_at: '2026-11-24' },
+  ] as Expense[];
+  assert.deepEqual(usdPaymentTotals(rows), {
+    cash: { amount: 0.3, count: 3, unknownAmounts: 1 }, card: { amount: 30, count: 1, unknownAmounts: 0 },
+    online: { amount: 40, count: 1, unknownAmounts: 0 }, unconfirmed: { amount: 370, count: 2, unknownAmounts: 0 },
+  });
+  assert.equal(paymentPlan({ ...row, payment_plan: undefined } as unknown as Expense), '확인 필요');
+  assert.deepEqual(expensePatch(row, { payment_plan: '현지 카드' }).patch, { payment_plan: '현지 카드' });
+  assert.ok(expensePatch(row, { payment_plan: '오타' }).error);
 });
 
 test('expense totals preserve currencies and exclude cancellations, deleted rows and unknown amounts', () => {
